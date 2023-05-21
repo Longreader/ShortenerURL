@@ -55,9 +55,10 @@ func ShortenerURLHandler(w http.ResponseWriter, r *http.Request) {
 		shortURL := shortener.RandStringBytes(7)
 		_, ok = store.Get(shortURL)
 	}
+	baseURL := "http://localhost:8080/"
 	// Write shor url to body
 	w.WriteHeader(201)
-	w.Write([]byte(shortURL))
+	w.Write([]byte(baseURL + shortURL))
 	// Set shorturl-url to store map
 	store.Set(shortURL, string(fullURL))
 	// fmt.Println(reflect.TypeOf(b))
