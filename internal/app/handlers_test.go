@@ -91,7 +91,7 @@ func TestPostEndpoint(t *testing.T) {
 
 func TestGetEndpoint(t *testing.T) {
 
-	var baseURL string = "http://127.0.0.1:8080/"
+	var baseURL = "http://127.0.0.1:8080/"
 
 	type want struct {
 		code     int
@@ -99,27 +99,27 @@ func TestGetEndpoint(t *testing.T) {
 	}
 
 	tests := []struct {
-		name       string
-		key        string
-		search_key string
-		value      string
-		want       want
+		name      string
+		key       string
+		searchKey string
+		value     string
+		want      want
 	}{
 		{
-			name:       "positive test #1 GET",
-			value:      "https://practicum.yandex.ru/",
-			key:        "x4G3v6K",
-			search_key: "x4G3v6K",
+			name:      "positive test #1 GET",
+			value:     "https://practicum.yandex.ru/",
+			key:       "x4G3v6K",
+			searchKey: "x4G3v6K",
 			want: want{
 				code:     307,
 				response: "",
 			},
 		},
 		{
-			name:       "positive test #2 GET",
-			value:      "https://practicum.yandex.ru/",
-			key:        "m8J7h9R",
-			search_key: "f0f0f0f",
+			name:      "positive test #2 GET",
+			value:     "https://practicum.yandex.ru/",
+			key:       "m8J7h9R",
+			searchKey: "f0f0f0f",
 			want: want{
 				code:     400,
 				response: "Bad request",
@@ -133,16 +133,16 @@ func TestGetEndpoint(t *testing.T) {
 
 			app.Store.Set(tt.key, tt.value)
 
-			request := httptest.NewRequest(http.MethodGet, baseURL+tt.search_key, nil)
+			request := httptest.NewRequest(http.MethodGet, baseURL+tt.searchKey, nil)
 
-			// value, okey := app.Store.Get(tt.search_key)
+			// value, okey := app.Store.Get(tt.searchKey)
 			// if okey != true {
 			// 	fmt.Printf("%s", "Error occured")
 			// }
 			// fmt.Printf("%s", value)
 
 			val := map[string]string{
-				"id": tt.search_key,
+				"id": tt.searchKey,
 			}
 
 			// выставляем параметр id в url vars
