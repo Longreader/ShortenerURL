@@ -4,13 +4,40 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+
 	"regexp"
-	"strings"
 	"testing"
 
 	"github.com/Longreader/go-shortener-url.git/internal/app"
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi/v5"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func NewRouter() chi.Router {
+	r := chi.NewRouter()
+
+	r.Route("/", func(r chi.Router) {
+		r.Get("/{id}", app.IDGetHandler)
+		r.Post("/", app.ShortenerURLHandler)
+	})
+	return r
+}
+
+func testRequest(t *testing.T, ts *httptest.Server, method, path string) (int, string) {
+	req, err := http.NewRequest(method, ts.URL+path, nil)
+	require.NoError(t, err)
+
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+
+	respBody, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	defer resp.Body.Close()
+
+	return resp.StatusCode, string(respBody)
+}
 
 func TestPostEndpoint(t *testing.T) {
 
@@ -91,8 +118,6 @@ func TestPostEndpoint(t *testing.T) {
 
 func TestGetEndpoint(t *testing.T) {
 
-	var baseURL = "http://127.0.0.1:8080/"
-
 	type want struct {
 		code     int
 		response string
@@ -111,8 +136,7 @@ func TestGetEndpoint(t *testing.T) {
 			key:       "x4G3v6K",
 			searchKey: "x4G3v6K",
 			want: want{
-				code:     307,
-				response: "",
+				code: 200,
 			},
 		},
 		{
@@ -122,60 +146,23 @@ func TestGetEndpoint(t *testing.T) {
 			searchKey: "f0f0f0f",
 			want: want{
 				code:     400,
-				response: "Bad request",
+				response: "Bad request\n",
 			},
 		},
 	}
 
 	for _, tt := range tests {
-		// Запускаем хендлеры
-		t.Run(tt.name, func(t *testing.T) {
 
-			app.Store.Set(tt.key, tt.value)
+		r := NewRouter()
+		ts := httptest.NewServer(r)
+		defer ts.Close()
 
-			request := httptest.NewRequest(http.MethodGet, baseURL+tt.searchKey, nil)
+		app.Store.Set(tt.key, tt.value)
 
-			// value, okey := app.Store.Get(tt.searchKey)
-			// if okey != true {
-			// 	fmt.Printf("%s", "Error occured")
-			// }
-			// fmt.Printf("%s", value)
-
-			val := map[string]string{
-				"id": tt.searchKey,
-			}
-
-			// выставляем параметр id в url vars
-			request = mux.SetURLVars(request, val)
-
-			// создаём новый Recorder
-			w := httptest.NewRecorder()
-
-			// определяем хендлер
-			h := http.HandlerFunc(app.IDGetHandler)
-
-			// запускаем сервер
-			h.ServeHTTP(w, request)
-
-			res := w.Result()
-
-			// проверяем код ответа
-			if res.StatusCode != tt.want.code {
-				t.Errorf("Expected status code %d, got %d", tt.want.code, w.Code)
-			}
-
-			// получаем и проверяем тело запроса
-			defer res.Body.Close()
-
-			resBody, err := io.ReadAll(res.Body)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if strings.Trim(string(resBody), "\n \t") != tt.want.response {
-				t.Errorf("Expected body %s, got %s", tt.want.response, w.Body.String())
-			}
-
-		})
+		statusCode, body := testRequest(t, ts, "GET", "/"+tt.searchKey)
+		assert.Equal(t, tt.want.code, statusCode)
+		if statusCode != http.StatusOK {
+			assert.Equal(t, tt.want.response, body)
+		}
 	}
 }

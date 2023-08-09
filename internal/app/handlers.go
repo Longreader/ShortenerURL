@@ -6,7 +6,7 @@ import (
 
 	"github.com/Longreader/go-shortener-url.git/internal/shortener" //indirect
 	"github.com/Longreader/go-shortener-url.git/internal/storage"
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi/v5"
 )
 
 var Store = storage.New()
@@ -20,12 +20,17 @@ func IDGetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	vars := mux.Vars(r)
+	id := chi.URLParam(r, "id")
+
+	if id == "" {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
 
 	// WORK with storage
 	// Move id - data url
 	// url, ok := storage[vars["id"]]
-	fullURL, ok := Store.Get(vars["id"])
+	fullURL, ok := Store.Get(id)
 
 	if !ok {
 		http.Error(w, "Bad request", http.StatusBadRequest)
