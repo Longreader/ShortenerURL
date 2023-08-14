@@ -61,7 +61,7 @@ func ShortenerURLHandler(w http.ResponseWriter, r *http.Request) {
 	// WORK with full url
 	shortURL := shortener.RandStringBytes(7)
 	for _, ok := Store.Get(shortURL); ok; {
-		shortURL := shortener.RandStringBytes(7)
+		shortURL = shortener.RandStringBytes(7)
 		_, ok = Store.Get(shortURL)
 	}
 	baseURL := "http://127.0.0.1:8080/"
