@@ -5,17 +5,20 @@ import (
 	"net/http"
 
 	"github.com/Longreader/go-shortener-url.git/internal/app"
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5"
 )
 
 func main() {
 
-	r := mux.NewRouter()
+	r := chi.NewRouter()
 
-	r.HandleFunc("/{id:[0-9A-Za-z]+}", app.IDGetHandler)
-	r.HandleFunc("/", app.ShortenerURLHandler)
+	r.Use(middleware.Recoverer)
+
+	r.Get("/{id:[0-9A-Za-z]+}", app.IDGetHandler)
+	r.Post("/", app.ShortenerURLHandler)
 
 	http.Handle("/", r)
 
-	log.Fatal(http.ListenAndServe("127.0.0.1:8080", nil))
+	log.Fatal(http.ListenAndServe("127.0.0.1:8080", r))
 }
