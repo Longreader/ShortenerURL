@@ -94,7 +94,7 @@ func APIShortenerURLHandler(w http.ResponseWriter, r *http.Request) {
 		_, ok = Store.Get(shortURL)
 	}
 	// baseURL := "http://127.0.0.1:8080/"
-
+	fmt.Println(docoder.URL)
 	Store.Set(shortURL, string(docoder.URL))
 
 	// Запись ответа JSON в тело ответа
@@ -104,7 +104,7 @@ func APIShortenerURLHandler(w http.ResponseWriter, r *http.Request) {
 	value := struct {
 		Result string `json:"result"`
 	}{
-		Result: shortURL,
+		Result: baseURL + shortURL,
 	}
 
 	buf := bytes.NewBuffer([]byte{})
