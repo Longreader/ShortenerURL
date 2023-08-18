@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 
 	"regexp"
 	"testing"
@@ -190,7 +191,7 @@ func TestAPIPostEndpoint(t *testing.T) {
 		// 	},
 		// },
 		{
-			name:  "negative test #2 POST",
+			name:  "negative test #1 POST",
 			value: "https://tproger.ru/articles/puteshestvie-v-golang-regexp/",
 			want: want{
 				code:        406,
@@ -241,9 +242,12 @@ func TestAPIPostEndpoint(t *testing.T) {
 			// if string(resBody) != tt.want.response {
 			// 	t.Errorf("Expected body %s, got %s", tt.want.response, w.Body.String())
 			// }
-			matched, _ := regexp.MatchString((`\w+` + tt.want.response + `\w+`), string(resBody))
+
+			resBodyStr := strings.Trim(string(resBody), "\n")
+
+			matched, _ := regexp.MatchString(tt.want.response, resBodyStr)
 			if !matched {
-				t.Errorf("Expected body %s, got %s", tt.want.response, w.Body.String())
+				t.Errorf("Expected body %s, got %s and %s word?", tt.want.response, w.Body.String(), string(resBody))
 
 			}
 
