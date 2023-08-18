@@ -17,6 +17,7 @@ func main() {
 
 	r.Get("/{id:[0-9A-Za-z]+}", app.IDGetHandler)
 	r.Post("/", app.ShortenerURLHandler)
+	r.Post("/api/shorten", app.APIShortenerURLHandler)
 
 	http.Handle("/", r)
 

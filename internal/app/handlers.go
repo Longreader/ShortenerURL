@@ -1,6 +1,9 @@
 package app
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -10,11 +13,9 @@ import (
 )
 
 var Store = storage.New()
+var baseURL = "http://127.0.0.1:8080/"
 
 func IDGetHandler(w http.ResponseWriter, r *http.Request) {
-	// Handle 'GET' method
-	// income ID-shorl url
-	// outcome Redirect by full url
 	if r.Method != http.MethodGet {
 		http.Error(w, "Only GET request are allowed", http.StatusMethodNotAllowed)
 		return
@@ -26,17 +27,12 @@ func IDGetHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
-
-	// WORK with storage
-	// Move id - data url
-	// url, ok := storage[vars["id"]]
 	fullURL, ok := Store.Get(id)
 
 	if !ok {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
-	// log.Println("IDFefaultHandler func()\n\tOK is", ok, "\n\tItem is", fullURL)
 
 	w.Header().Add("Content-Type", "text/html; charset=UTF-8")
 	w.Header().Set("Location", string(fullURL))
@@ -44,31 +40,75 @@ func IDGetHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func ShortenerURLHandler(w http.ResponseWriter, r *http.Request) {
-	// Handle POST method
-	// income full URL
-	// outcome None
-	// set up pair 'full url' - 'id' in storage
 	if r.Method != http.MethodPost {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
-	// Read URL
+	// Читаем из тела запроса
 	fullURL, err := io.ReadAll(r.Body)
-	// Handle error
+	defer r.Body.Close()
+	// Отлавливаем возможную ошибку
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	// WORK with full url
+	// Создание сокращенного URL
 	shortURL := shortener.RandStringBytes(7)
 	for _, ok := Store.Get(shortURL); ok; {
 		shortURL = shortener.RandStringBytes(7)
 		_, ok = Store.Get(shortURL)
 	}
-	baseURL := "http://127.0.0.1:8080/"
-	// Write shor url to body
+	// baseURL := "http://127.0.0.1:8080/"
+
 	w.WriteHeader(201)
 	w.Write([]byte(baseURL + shortURL))
-	// Set shorturl-url to store map
+
 	Store.Set(shortURL, string(fullURL))
-	// fmt.Println(reflect.TypeOf(b))
+}
+
+func APIShortenerURLHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+	// Чтение JSON из тела запроса
+	if r.Header.Get("Content-Type") != "application/json" {
+		http.Error(w, "Bad agent request", http.StatusNotAcceptable)
+		return
+	}
+	defer r.Body.Close()
+
+	docoder := struct {
+		URL string `json:"url"`
+	}{}
+	if err := json.NewDecoder(r.Body).Decode(&docoder); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	fmt.Println(docoder.URL)
+
+	// Создание сокращенного URL
+	shortURL := shortener.RandStringBytes(7)
+	for _, ok := Store.Get(shortURL); ok; {
+		shortURL = shortener.RandStringBytes(7)
+		_, ok = Store.Get(shortURL)
+	}
+	// baseURL := "http://127.0.0.1:8080/"
+
+	Store.Set(shortURL, string(docoder.URL))
+
+	// Запись ответа JSON в тело ответа
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	value := struct {
+		Result string `json:"result"`
+	}{
+		Result: shortURL,
+	}
+
+	buf := bytes.NewBuffer([]byte{})
+	encoder := json.NewEncoder(buf)
+	encoder.Encode(value)
+	w.Write(buf.Bytes())
 }
