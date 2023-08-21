@@ -7,15 +7,14 @@ import (
 	"io"
 	"net/http"
 
-	"os"
-
+	"github.com/Longreader/go-shortener-url.git/config"
 	"github.com/Longreader/go-shortener-url.git/internal/shortener" //indirect
 	"github.com/Longreader/go-shortener-url.git/internal/storage"
 	"github.com/go-chi/chi/v5"
 )
 
 var Store = storage.New()
-var baseURL = os.Getenv("BASE_URL")
+var baseURL = config.BASE_URL
 
 func IDGetHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -60,7 +59,6 @@ func ShortenerURLHandler(w http.ResponseWriter, r *http.Request) {
 		shortURL = shortener.RandStringBytes(7)
 		_, ok = Store.Get(shortURL)
 	}
-	// baseURL := "http://127.0.0.1:8080/"
 
 	w.WriteHeader(201)
 	w.Write([]byte(baseURL + shortURL))
@@ -95,7 +93,6 @@ func APIShortenerURLHandler(w http.ResponseWriter, r *http.Request) {
 		shortURL = shortener.RandStringBytes(7)
 		_, ok = Store.Get(shortURL)
 	}
-	// baseURL := "http://127.0.0.1:8080/"
 	fmt.Println(docoder.URL)
 	Store.Set(shortURL, string(docoder.URL))
 
