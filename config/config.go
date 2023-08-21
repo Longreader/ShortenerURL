@@ -15,13 +15,13 @@ func GetAddress() string {
 }
 
 func GetURL() string {
-	BaseUrl := os.Getenv("BASE_URL")
+	BaseURL := os.Getenv("BASE_URL")
 
-	if BaseUrl == "" {
-		BaseUrl = "http://127.0.0.1:8080/"
+	if BaseURL == "" {
+		BaseURL = "http://127.0.0.1:8080/"
 	}
-	if BaseUrl[len(BaseUrl)-1:] != "/" {
-		BaseUrl += "/"
+	if BaseURL[len(BaseURL)-1:] != "/" {
+		BaseURL += "/"
 	}
-	return BaseUrl
+	return BaseURL
 }
