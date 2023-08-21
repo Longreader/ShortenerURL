@@ -7,13 +7,15 @@ import (
 	"io"
 	"net/http"
 
+	"os"
+
 	"github.com/Longreader/go-shortener-url.git/internal/shortener" //indirect
 	"github.com/Longreader/go-shortener-url.git/internal/storage"
 	"github.com/go-chi/chi/v5"
 )
 
 var Store = storage.New()
-var baseURL = "http://127.0.0.1:8080/"
+var baseURL = os.Getenv("BASE_URL")
 
 func IDGetHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {

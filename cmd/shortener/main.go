@@ -4,12 +4,16 @@ import (
 	"log"
 	"net/http"
 
+	"os"
+
 	"github.com/Longreader/go-shortener-url.git/internal/app"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 )
 
 func main() {
+
+	var serverAddress = os.Getenv("SERVER_ADDRESS")
 
 	r := chi.NewRouter()
 
@@ -21,5 +25,5 @@ func main() {
 
 	http.Handle("/", r)
 
-	log.Fatal(http.ListenAndServe("127.0.0.1:8080", r))
+	log.Fatal(http.ListenAndServe(serverAddress, r))
 }
