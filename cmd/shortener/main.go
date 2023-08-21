@@ -14,8 +14,6 @@ func main() {
 
 	r := chi.NewRouter()
 
-	config.Setup()
-
 	r.Use(middleware.Recoverer)
 
 	r.Get("/{id:[0-9A-Za-z]+}", app.IDGetHandler)
@@ -24,5 +22,5 @@ func main() {
 
 	http.Handle("/", r)
 
-	log.Fatal(http.ListenAndServe(config.SERVER_ADDRESS, r))
+	log.Fatal(http.ListenAndServe(config.GetAddress(), r))
 }

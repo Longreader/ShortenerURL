@@ -1,21 +1,24 @@
 package config
 
 import (
-	"log"
 	"os"
 )
 
-var SERVER_ADDRESS = os.Getenv("SERVER_ADDRESS")
+func GetAddress() string {
 
-var BASE_URL = os.Getenv("BASE_URL")
+	Server_Address := os.Getenv("SERVER_ADDRESS")
 
-func Setup() {
-	if SERVER_ADDRESS == "" {
-		SERVER_ADDRESS = "127.0.0.1:8080"
+	if Server_Address == "" {
+		Server_Address = "127.0.0.1:8080"
 	}
+	return Server_Address
+}
 
-	if BASE_URL == "" {
-		BASE_URL = "http://127.0.0.1:8080/"
+func GetURL() string {
+	Base_URL := os.Getenv("BASE_URL")
+
+	if Base_URL == "" {
+		Base_URL = "http://127.0.0.1:8080/"
 	}
-	log.Println("Server setup configuration completed")
+	return Base_URL
 }

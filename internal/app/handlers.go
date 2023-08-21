@@ -14,9 +14,12 @@ import (
 )
 
 var Store = storage.New()
-var baseURL = config.BASE_URL
+var baseURL = config.GetURL()
 
 func IDGetHandler(w http.ResponseWriter, r *http.Request) {
+
+	// log.Println(baseURL)
+
 	if r.Method != http.MethodGet {
 		http.Error(w, "Only GET request are allowed", http.StatusMethodNotAllowed)
 		return
