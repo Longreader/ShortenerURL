@@ -6,19 +6,22 @@ import (
 
 func GetAddress() string {
 
-	Server_Address := os.Getenv("SERVER_ADDRESS")
+	ServerAddress := os.Getenv("SERVER_ADDRESS")
 
-	if Server_Address == "" {
-		Server_Address = "127.0.0.1:8080"
+	if ServerAddress == "" {
+		ServerAddress = "127.0.0.1:8080"
 	}
-	return Server_Address
+	return ServerAddress
 }
 
 func GetURL() string {
-	Base_URL := os.Getenv("BASE_URL")
+	BaseUrl := os.Getenv("BASE_URL")
 
-	if Base_URL == "" {
-		Base_URL = "http://127.0.0.1:8080/"
+	if BaseUrl == "" {
+		BaseUrl = "http://127.0.0.1:8080/"
 	}
-	return Base_URL
+	if BaseUrl[len(BaseUrl)-1:] != "/" {
+		BaseUrl += "/"
+	}
+	return BaseUrl
 }
