@@ -1,6 +1,9 @@
 package storage
 
 import (
+	"io"
+	"log"
+	"os"
 	"sync"
 )
 
@@ -10,8 +13,33 @@ type Storage struct {
 }
 
 func New() *Storage {
-	return &Storage{
-		storage: make(map[string]string),
+	fileName := os.Getenv("FILE_STORAGE_PATH")
+	log.Printf("The fileName is %s", fileName)
+	if fileName == "" {
+		return &Storage{
+			storage: make(map[string]string),
+		}
+	} else {
+		consumer, err := NewConsumer(fileName)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer consumer.Close()
+		st := Storage{
+			storage: make(map[string]string),
+		}
+		for {
+			readItem, err := consumer.ReadURL()
+			if err != nil {
+				if err == io.EOF {
+					break
+				} else {
+					log.Fatal(err)
+				}
+			}
+			st.storage[readItem.ShortURL] = readItem.LongURL
+		}
+		return &st
 	}
 }
 
@@ -20,8 +48,6 @@ func (st *Storage) set(key string, value string) {
 }
 
 func (st *Storage) get(key string) (string, bool) {
-	// Почему ок возвращает ошибку
-	// но при этом возвращается верный результат
 	if st.count() > 0 {
 		item, ok := st.storage[key]
 		if !ok {
@@ -40,6 +66,23 @@ func (st *Storage) Set(key, value string) {
 	st.Lock()
 	defer st.Unlock()
 	st.set(key, value)
+	fileName := os.Getenv("FILE_STORAGE_PATH")
+	log.Printf("The fileName is %s", fileName)
+	if fileName != "" {
+		produser, err := NewProduser(fileName)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer produser.Close()
+		st := StorageItem{
+			ShortURL: key,
+			LongURL:  value,
+		}
+		if err := produser.WriteURL(&st); err != nil {
+			log.Fatal(err)
+		}
+	}
+
 }
 
 func (st *Storage) Get(key string) (string, bool) {
