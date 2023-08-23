@@ -6,7 +6,7 @@ import (
 )
 
 func TestFlags(t *testing.T) {
-	val := flag.String("a", ":4040", "PORT")
+	val := flag.String("s", ":4040", "PORT")
 	flag.Parse()
 	if *val != ":4040" {
 		t.Errorf("Expected port :4040, got %s", *val)
