@@ -12,6 +12,8 @@ import (
 
 func main() {
 
+	// config.Configure()
+
 	r := chi.NewRouter()
 
 	r.Use(middleware.Recoverer)

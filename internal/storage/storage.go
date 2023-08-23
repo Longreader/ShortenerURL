@@ -3,8 +3,9 @@ package storage
 import (
 	"io"
 	"log"
-	"os"
 	"sync"
+
+	"github.com/Longreader/go-shortener-url.git/config"
 )
 
 type Storage struct {
@@ -13,8 +14,8 @@ type Storage struct {
 }
 
 func New() *Storage {
-	fileName := os.Getenv("FILE_STORAGE_PATH")
-	log.Printf("The fileName is %s", fileName)
+	fileName := config.GetStoragePath()
+	// log.Printf("The fileName is %s", fileName)
 	if fileName == "" {
 		return &Storage{
 			storage: make(map[string]string),
@@ -66,7 +67,7 @@ func (st *Storage) Set(key, value string) {
 	st.Lock()
 	defer st.Unlock()
 	st.set(key, value)
-	fileName := os.Getenv("FILE_STORAGE_PATH")
+	fileName := config.GetStoragePath()
 	log.Printf("The fileName is %s", fileName)
 	if fileName != "" {
 		produser, err := NewProduser(fileName)
