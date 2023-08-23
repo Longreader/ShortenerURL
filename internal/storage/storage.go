@@ -68,7 +68,6 @@ func (st *Storage) Set(key, value string) {
 	defer st.Unlock()
 	st.set(key, value)
 	fileName := config.GetStoragePath()
-	log.Printf("The fileName is %s", fileName)
 	if fileName != "" {
 		produser, err := NewProduser(fileName)
 		if err != nil {

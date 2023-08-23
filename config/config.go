@@ -27,7 +27,9 @@ func GetURL() string {
 }
 
 func GetStoragePath() string {
+
 	fileName := os.Getenv("FILE_STORAGE_PATH")
+
 	if fileName == "" {
 		fileName = *Flags.f
 	}
