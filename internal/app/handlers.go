@@ -11,14 +11,13 @@ import (
 	"github.com/Longreader/go-shortener-url.git/internal/shortener" //indirect
 	"github.com/Longreader/go-shortener-url.git/internal/storage"
 	"github.com/go-chi/chi/v5"
+	"github.com/sirupsen/logrus"
 )
 
 var Store = storage.New()
 var baseURL = config.GetURL()
 
 func IDGetHandler(w http.ResponseWriter, r *http.Request) {
-
-	// log.Println(baseURL)
 
 	if r.Method != http.MethodGet {
 		http.Error(w, "Only GET request are allowed", http.StatusMethodNotAllowed)
@@ -44,6 +43,11 @@ func IDGetHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func ShortenerURLHandler(w http.ResponseWriter, r *http.Request) {
+
+	logrus.Debug("ShortenerURLHandler start")
+	defer logrus.Debug("ShortenerURLHandler end")
+	logrus.Debugf("Base URL %s", baseURL)
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return

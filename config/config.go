@@ -1,7 +1,6 @@
 package config
 
 import (
-	"flag"
 	"os"
 
 	"github.com/sirupsen/logrus"
@@ -9,7 +8,7 @@ import (
 
 func GetAddress() string {
 
-	ParseFlagIfDidnt()
+	// ParseFlagIfDidnt()
 
 	logrus.Info("Server address configuration")
 
@@ -24,7 +23,7 @@ func GetAddress() string {
 
 func GetURL() string {
 
-	ParseFlagIfDidnt()
+	// ParseFlagIfDidnt()
 
 	logrus.Info("Base URL configuration")
 
@@ -32,7 +31,7 @@ func GetURL() string {
 
 	if BaseURL == "" {
 		BaseURL = *Flags.b
-		logrus.Debug("Base URL comes from flag and equal", BaseURL)
+		logrus.Debug("Base URL comes from flag and equal ", BaseURL)
 	}
 	if BaseURL[len(BaseURL)-1:] != "/" {
 		BaseURL += "/"
@@ -42,7 +41,7 @@ func GetURL() string {
 
 func GetStoragePath() string {
 
-	ParseFlagIfDidnt()
+	// ParseFlagIfDidnt()
 
 	logrus.Info("File Storage Path configuration")
 
@@ -50,18 +49,18 @@ func GetStoragePath() string {
 
 	if fileName == "" {
 		fileName = *Flags.f
-		logrus.Debug("Path comes from flag and equal", fileName)
+		logrus.Debug("Path comes from flag and equal ", fileName)
 	}
 	return fileName
 }
 
-func ParseFlagIfDidnt() {
+// func ParseFlagIfDidnt() {
 
-	if flag.Parsed() {
-		logrus.Debug("Plag already parsed")
-		return
-	}
+// 	if flag.Parsed() {
+// 		logrus.Debug("Plag already parsed")
+// 		return
+// 	}
 
-	flag.Parse()
-	logrus.Info("Flag parsed")
-}
+// 	flag.Parse()
+// 	logrus.Info("Flag parsed")
+// }

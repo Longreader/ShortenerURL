@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"net/http"
 
 	"github.com/Longreader/go-shortener-url.git/config"
@@ -12,9 +13,13 @@ import (
 
 func main() {
 
+	flag.Parse()
+
 	r := chi.NewRouter()
 
 	r.Use(middleware.Recoverer)
+
+	logrus.StandardLogger().Level = logrus.DebugLevel
 
 	r.Get("/{id:[0-9A-Za-z]+}", app.IDGetHandler)
 	r.Post("/", app.ShortenerURLHandler)

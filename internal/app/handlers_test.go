@@ -99,9 +99,6 @@ func TestPostEndpoint(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			// if string(resBody) != tt.want.response {
-			// 	t.Errorf("Expected body %s, got %s", tt.want.response, w.Body.String())
-			// }
 			matched, _ := regexp.MatchString((tt.want.response + `\w+`), string(resBody))
 			if !matched {
 				t.Errorf("Expected body %s, got %s", tt.want.response, w.Body.String())
