@@ -8,8 +8,6 @@ import (
 
 func GetAddress() string {
 
-	// ParseFlagIfDidnt()
-
 	logrus.Info("Server address configuration")
 
 	ServerAddress := os.Getenv("SERVER_ADDRESS")
@@ -22,8 +20,6 @@ func GetAddress() string {
 }
 
 func GetURL() string {
-
-	// ParseFlagIfDidnt()
 
 	logrus.Info("Base URL configuration")
 
@@ -41,8 +37,6 @@ func GetURL() string {
 
 func GetStoragePath() string {
 
-	// ParseFlagIfDidnt()
-
 	logrus.Info("File Storage Path configuration")
 
 	fileName := os.Getenv("FILE_STORAGE_PATH")
@@ -53,14 +47,3 @@ func GetStoragePath() string {
 	}
 	return fileName
 }
-
-// func ParseFlagIfDidnt() {
-
-// 	if flag.Parsed() {
-// 		logrus.Debug("Plag already parsed")
-// 		return
-// 	}
-
-// 	flag.Parse()
-// 	logrus.Info("Flag parsed")
-// }
