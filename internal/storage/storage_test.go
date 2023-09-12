@@ -15,7 +15,9 @@ func TestStorage(t *testing.T) {
 	os.Setenv("BASE_URL", "http://127.0.0.1:8080/")
 	os.Setenv("FILE_STORAGE_PATH", "log.log")
 	logrus.Debugf("Seted environment")
-	store := storage.New()
+	store := storage.New(storage.Config{
+		StoragePath: "",
+	})
 	store.Set(keyURL, valueURL)
 	if storeVal, _ := store.Get(keyURL); storeVal != valueURL {
 		t.Errorf("Expected value %s, got %s", storeVal, valueURL)

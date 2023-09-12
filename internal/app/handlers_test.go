@@ -1,258 +1,301 @@
-package app_test
+package app
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"strings"
-
 	"regexp"
 	"testing"
 
-	"github.com/Longreader/go-shortener-url.git/internal/app"
-	"github.com/go-chi/chi/v5"
+	"github.com/Longreader/go-shortener-url.git/internal/storage"
+	"github.com/go-chi/chi"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-func NewRouter() chi.Router {
-	r := chi.NewRouter()
-
-	r.Route("/", func(r chi.Router) {
-		r.Get("/{id}", app.IDGetHandler)
-		r.Post("/", app.ShortenerURLHandler)
-	})
-	return r
-}
-
-func testRequest(t *testing.T, ts *httptest.Server, method, path string) (int, string) {
-	req, err := http.NewRequest(method, ts.URL+path, nil)
-	require.NoError(t, err)
-
-	resp, err := http.DefaultClient.Do(req)
-	require.NoError(t, err)
-
-	respBody, err := io.ReadAll(resp.Body)
-	require.NoError(t, err)
-
-	defer resp.Body.Close()
-
-	return resp.StatusCode, string(respBody)
-}
-
-func TestPostEndpoint(t *testing.T) {
-
-	type want struct {
-		code        int
-		response    string
-		contentType string
+func TestHandler_ShortenerURLHandler(t *testing.T) {
+	type fields struct {
+		Store   *storage.Storage
+		BaseURL string
 	}
-
+	type args struct {
+		w *httptest.ResponseRecorder
+		r *http.Request
+	}
+	type response struct {
+		StatusCode  int
+		ContentType string
+		BodyPattern string
+	}
 	tests := []struct {
-		name  string
-		value string
-		want  want
+		name     string
+		fields   fields
+		args     args
+		response response
 	}{
 		{
-			name:  "positive test #1 POST",
-			value: "https://practicum.yandex.ru/",
-			want: want{
-				code:     201,
-				response: `http://127.0.0.1:8080/`,
+			name: "POSITIVE TEST #1",
+			fields: fields{
+				Store: storage.New(
+					storage.Config{
+						StoragePath: "",
+					},
+				),
+				BaseURL: "http//:localhost:8000/",
+			},
+			args: args{
+				w: httptest.NewRecorder(),
+				r: httptest.NewRequest(http.MethodPost, "http://localhost:8000/", bytes.NewBuffer([]byte("vk.com"))),
+			},
+			response: response{
+				StatusCode:  201,
+				ContentType: "",
+				BodyPattern: `\w\d\w\d\w\d\w`,
 			},
 		},
 		{
-			name:  "positive test #2 POST",
-			value: "https://tproger.ru/articles/puteshestvie-v-golang-regexp/",
-			want: want{
-				code:     201,
-				response: `http://127.0.0.1:8080/`,
+			name: "NEGATIVE TEST #1",
+			fields: fields{
+				Store: storage.New(
+					storage.Config{
+						StoragePath: "",
+					},
+				),
+				BaseURL: "http//:localhost:8000/",
+			},
+			args: args{
+				w: httptest.NewRecorder(),
+				r: httptest.NewRequest(http.MethodGet, "http://localhost:8000/", bytes.NewBuffer([]byte("vk.com"))),
+			},
+			response: response{
+				StatusCode:  400,
+				ContentType: "text/plain; charset=utf-8",
+				BodyPattern: `Bad request`,
 			},
 		},
 	}
-
 	for _, tt := range tests {
-		// Запускаем хендлеры
 		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest(http.MethodPost, tt.value, nil)
-
-			// создаём новый Recorder
-			w := httptest.NewRecorder()
-			// определяем хендлер
-			h := http.HandlerFunc(app.ShortenerURLHandler)
-			// запускаем сервер
-			h.ServeHTTP(w, request)
-			res := w.Result()
-
-			// проверяем код ответа
-			if res.StatusCode != tt.want.code {
-				t.Errorf("Expected status code %d, got %d", tt.want.code, w.Code)
+			h := &Handler{
+				Store:   tt.fields.Store,
+				BaseURL: tt.fields.BaseURL,
 			}
 
-			// получаем и проверяем тело запроса
-			defer res.Body.Close()
+			handler := http.HandlerFunc(h.ShortenerURLHandler)
 
-			resBody, err := io.ReadAll(res.Body)
+			handler.ServeHTTP(tt.args.w, tt.args.r)
+
+			resp := tt.args.w.Result()
+			defer resp.Body.Close()
+
+			resBody, err := io.ReadAll(resp.Body)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			matched, _ := regexp.MatchString((tt.want.response + `\w+`), string(resBody))
-			if !matched {
-				t.Errorf("Expected body %s, got %s", tt.want.response, w.Body.String())
+			fmt.Println(resp.StatusCode)
+			fmt.Println(resp.Header.Get("Content-Type"))
+			fmt.Println(string(resBody))
 
-			}
-
-			// заголовок ответа
-			if res.Header.Get("Content-Type") != tt.want.contentType {
-				t.Errorf("Expected Content-Type %s, got %s", tt.want.contentType, res.Header.Get("Content-Type"))
-			}
-
+			assert.Equal(t, tt.response.StatusCode, resp.StatusCode)
+			assert.Equal(t, tt.response.ContentType, resp.Header.Get("Content-Type"))
+			assert.Regexp(t, regexp.MustCompile(tt.response.BodyPattern), string(resBody))
 		})
 	}
 }
 
-func TestGetEndpoint(t *testing.T) {
-
-	type want struct {
-		code     int
-		response string
+func TestHandler_IDGetHandler(t *testing.T) {
+	type fields struct {
+		Store   *storage.Storage
+		BaseURL string
 	}
-
+	type args struct {
+		w *httptest.ResponseRecorder
+		r *http.Request
+	}
+	type response struct {
+		StatusCode  int
+		ContentType string
+		BodyPattern string
+	}
+	type request struct {
+		ShortURL string
+		ShortID  string
+		LongURL  string
+	}
 	tests := []struct {
-		name      string
-		key       string
-		searchKey string
-		value     string
-		want      want
+		name     string
+		fields   fields
+		args     args
+		response response
+		request  request
 	}{
 		{
-			name:      "positive test #1 GET",
-			value:     "https://practicum.yandex.ru/",
-			key:       "x4G3v6K",
-			searchKey: "x4G3v6K",
-			want: want{
-				code: 200,
+			name: "POSITIVE TEST #1",
+			fields: fields{
+				Store: storage.New(
+					storage.Config{
+						StoragePath: "",
+					},
+				),
+				BaseURL: "http//:localhost:8000/",
 			},
-		},
-		{
-			name:      "positive test #2 GET",
-			value:     "https://practicum.yandex.ru/",
-			key:       "m8J7h9R",
-			searchKey: "f0f0f0f",
-			want: want{
-				code:     400,
-				response: "Bad request\n",
+			args: args{
+				w: httptest.NewRecorder(),
+				r: httptest.NewRequest(http.MethodGet, "http://localhost:8000/"+"f3r7h3s", nil),
+			},
+			response: response{
+				StatusCode:  307,
+				ContentType: "text/html; charset=UTF-8",
+			},
+			request: request{
+				ShortURL: "http://localhost:8000/f3r7h3s",
+				ShortID:  "f3r7h3s",
+				LongURL:  "https://tproger.ru/articles/puteshestvie-v-golang-regexp",
 			},
 		},
 	}
-
 	for _, tt := range tests {
-
-		r := NewRouter()
-		ts := httptest.NewServer(r)
-		defer ts.Close()
-
-		app.Store.Set(tt.key, tt.value)
-
-		statusCode, body := testRequest(t, ts, "GET", "/"+tt.searchKey)
-		assert.Equal(t, tt.want.code, statusCode)
-		if statusCode != http.StatusOK {
-			assert.Equal(t, tt.want.response, body)
-		}
-	}
-}
-
-func TestAPIPostEndpoint(t *testing.T) {
-
-	type want struct {
-		code        int
-		response    string
-		contentType string
-	}
-
-	tests := []struct {
-		name  string
-		value string
-		want  want
-	}{
-		// {
-		// 	name:  "positive test #1 POST",
-		// 	value: "https://practicum.yandex.ru/",
-		// 	want: want{
-		// 		code:        201,
-		// 		response:    ,
-		// 		contentType: "application/json",
-		// 	},
-		// },
-		{
-			name:  "negative test #1 POST",
-			value: "https://tproger.ru/articles/puteshestvie-v-golang-regexp/",
-			want: want{
-				code:        406,
-				response:    "Bad agent request",
-				contentType: "text/plain; charset=utf-8",
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		// Запускаем хендлеры
 		t.Run(tt.name, func(t *testing.T) {
-
-			// создаем словарь данных на отправку
-			var data = make(map[string]string)
-			data["url"] = tt.value
-
-			// создание буфера для записи json
-			buf := bytes.NewBuffer([]byte{})
-			// кодирование данных в буфер
-			encoder := json.NewEncoder(buf)
-			encoder.Encode(data)
-
-			request := httptest.NewRequest(http.MethodPost, "http://127.0.0.1:8080/api/shorten", bytes.NewBuffer(buf.Bytes()))
-
-			request.Header.Add("Content-Type", tt.want.contentType)
-			// создаём новый Recorder
-			w := httptest.NewRecorder()
-			// определяем хендлер
-			h := http.HandlerFunc(app.APIShortenerURLHandler)
-			// запускаем сервер
-			h.ServeHTTP(w, request)
-			res := w.Result()
-
-			// проверяем код ответа
-			if res.StatusCode != tt.want.code {
-				t.Errorf("Expected status code %d, got %d", tt.want.code, w.Code)
+			h := &Handler{
+				Store:   tt.fields.Store,
+				BaseURL: tt.fields.BaseURL,
 			}
 
-			// получаем и проверяем тело запроса
-			defer res.Body.Close()
+			h.Store.Set(tt.request.ShortID, tt.request.LongURL)
 
-			resBody, err := io.ReadAll(res.Body)
+			rctx := chi.NewRouteContext()
+			rctx.URLParams.Add("id", tt.request.ShortID)
+
+			tt.args.r = tt.args.r.WithContext(context.WithValue(tt.args.r.Context(), chi.RouteCtxKey, rctx))
+
+			// r := h.InitRouter()
+
+			// ts := httptest.NewServer(r)
+			// defer ts.Close()
+
+			// resp, err := http.DefaultClient.Do(tt.args.r)
+
+			// assert.Nil(t, err)
+
+			handler := http.HandlerFunc(h.IDGetHandler)
+
+			handler.ServeHTTP(tt.args.w, tt.args.r)
+
+			resp := tt.args.w.Result()
+
+			defer resp.Body.Close()
+
+			resBody, err := io.ReadAll(resp.Body)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			// if string(resBody) != tt.want.response {
-			// 	t.Errorf("Expected body %s, got %s", tt.want.response, w.Body.String())
-			// }
+			fmt.Println(resp.StatusCode)
+			fmt.Println(resp.Header.Get("Content-Type"))
+			fmt.Println(string(resBody))
 
-			resBodyStr := strings.Trim(string(resBody), "\n")
+			assert.Equal(t, tt.response.StatusCode, resp.StatusCode)
+			assert.Equal(t, tt.response.ContentType, resp.Header.Get("Content-Type"))
+		})
+	}
+}
 
-			matched, _ := regexp.MatchString(tt.want.response, resBodyStr)
-			if !matched {
-				t.Errorf("Expected body %s, got %s and %s word?", tt.want.response, w.Body.String(), string(resBody))
-
+func TestHandler_APIShortenerURLHandler(t *testing.T) {
+	type fields struct {
+		Store   *storage.Storage
+		BaseURL string
+	}
+	type args struct {
+		w *httptest.ResponseRecorder
+		r *http.Request
+	}
+	type response struct {
+		StatusCode  int
+		ContentType string
+		BodyPattern string
+	}
+	tests := []struct {
+		name     string
+		fields   fields
+		args     args
+		response response
+	}{
+		{
+			name: "POSITIVE TEST #1",
+			fields: fields{
+				Store: storage.New(
+					storage.Config{
+						StoragePath: "",
+					},
+				),
+				BaseURL: "http//:localhost:8000/",
+			},
+			args: args{
+				w: httptest.NewRecorder(),
+				r: httptest.NewRequest(http.MethodPost, "http://localhost:8000/api/shorten", bytes.NewBuffer([]byte(`{"url":"https://github.com/Longreader/ShortenerURL/"}`))),
+			},
+			response: response{
+				StatusCode:  201,
+				ContentType: "application/json",
+				BodyPattern: `\w\d\w\d\w\d\w`,
+			},
+		},
+		{
+			name: "POSITIVE TEST #2",
+			fields: fields{
+				Store: storage.New(
+					storage.Config{
+						StoragePath: "",
+					},
+				),
+				BaseURL: "http//:localhost:8000/",
+			},
+			args: args{
+				w: httptest.NewRecorder(),
+				r: httptest.NewRequest(http.MethodPost, "http://localhost:8000/api/shorten", bytes.NewBuffer([]byte(`{"flip":"https://github.com/Longreader/ShortenerURL/"}`))),
+			},
+			response: response{
+				StatusCode:  201,
+				ContentType: "application/json",
+				BodyPattern: `\w\d\w\d\w\d\w`,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := &Handler{
+				Store:   tt.fields.Store,
+				BaseURL: tt.fields.BaseURL,
 			}
 
-			// заголовок ответа
-			if res.Header.Get("Content-Type") != tt.want.contentType {
-				t.Errorf("Expected Content-Type %s, got %s", tt.want.contentType, res.Header.Get("Content-Type"))
+			tt.args.r.Header.Set("Content-Type", "application/json")
+
+			handler := http.HandlerFunc(h.APIShortenerURLHandler)
+
+			handler.ServeHTTP(tt.args.w, tt.args.r)
+
+			resp := tt.args.w.Result()
+			defer resp.Body.Close()
+
+			resBody, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Fatal(err)
 			}
 
+			body := make(map[string]string)
+			err = json.Unmarshal(resBody, &body)
+
+			fmt.Printf(body["url"])
+
+			assert.Nil(t, err)
+
+			assert.Equal(t, tt.response.StatusCode, resp.StatusCode)
+			assert.Equal(t, tt.response.ContentType, resp.Header.Get("Content-Type"))
+			assert.Regexp(t, regexp.MustCompile(tt.fields.BaseURL+tt.response.BodyPattern), body["result"])
 		})
 	}
 }

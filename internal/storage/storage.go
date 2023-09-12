@@ -5,29 +5,38 @@ import (
 	"log"
 	"sync"
 
-	"github.com/Longreader/go-shortener-url.git/config"
+	"github.com/sirupsen/logrus"
 )
 
-type Storage struct {
-	sync.Mutex // mutex for lock
-	storage    map[string]string
+type Config struct {
+	StoragePath string
 }
 
-func New() *Storage {
-	fileName := config.GetStoragePath()
-	// log.Printf("The fileName is %s", fileName)
-	if fileName == "" {
+type Storage struct {
+	sync.Mutex  // mutex for lock
+	storagePath string
+	storage     map[string]string
+}
+
+func New(cfg Config) *Storage {
+	logrus.Debug("New Storage")
+	defer logrus.Debug("New storage created")
+	path := cfg.StoragePath
+	if path == "" {
 		return &Storage{
-			storage: make(map[string]string),
+			storage:     make(map[string]string),
+			storagePath: path,
 		}
 	} else {
-		consumer, err := NewConsumer(fileName)
+		logrus.Debug("New storage creating from file")
+		consumer, err := NewConsumer(path)
 		if err != nil {
 			log.Fatal(err)
 		}
 		defer consumer.Close()
 		st := Storage{
-			storage: make(map[string]string),
+			storage:     make(map[string]string),
+			storagePath: path,
 		}
 		for {
 			readItem, err := consumer.ReadURL()
@@ -38,6 +47,7 @@ func New() *Storage {
 					log.Fatal(err)
 				}
 			}
+			logrus.Debugf("Short url %s long url %s", readItem.ShortURL, readItem.LongURL)
 			st.storage[readItem.ShortURL] = readItem.LongURL
 		}
 		return &st
@@ -67,9 +77,9 @@ func (st *Storage) Set(key, value string) {
 	st.Lock()
 	defer st.Unlock()
 	st.set(key, value)
-	fileName := config.GetStoragePath()
-	if fileName != "" {
-		produser, err := NewProduser(fileName)
+	path := st.storagePath
+	if path != "" {
+		produser, err := NewProduser(path)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -96,3 +106,15 @@ func (st *Storage) Count() int {
 	defer st.Unlock()
 	return st.count()
 }
+
+// func (st *Storage) getall() {
+// 	for r, v := range st.storage {
+// 		fmt.Println(r, v)
+// 	}
+// }
+
+// func (st *Storage) GetAll() {
+// 	st.Lock()
+// 	defer st.Unlock()
+// 	st.getall()
+// }

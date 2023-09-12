@@ -7,46 +7,50 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/Longreader/go-shortener-url.git/config"
-	"github.com/Longreader/go-shortener-url.git/internal/shortener" //indirect
-	"github.com/Longreader/go-shortener-url.git/internal/storage"
-	"github.com/go-chi/chi/v5"
+	//indirect
+
+	"github.com/Longreader/go-shortener-url.git/internal/tools"
+	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
 )
 
-var Store = storage.New()
-var baseURL = config.GetURL()
+func (h *Handler) IDGetHandler(w http.ResponseWriter, r *http.Request) {
 
-func IDGetHandler(w http.ResponseWriter, r *http.Request) {
+	logrus.Debug("IDGetHandler start")
+	defer logrus.Debug("IDGetHandler end")
 
 	if r.Method != http.MethodGet {
 		http.Error(w, "Only GET request are allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
+	// h.Store.GetAll()
+
 	id := chi.URLParam(r, "id")
 
+	logrus.Debugf("ID equal %s", id)
+
 	if id == "" {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		http.Error(w, "Bad request or miss id", http.StatusBadRequest)
 		return
 	}
-	fullURL, ok := Store.Get(id)
+
+	fullURL, ok := h.Store.Get(id)
 
 	if !ok {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Wrong ID %s", fullURL), http.StatusBadRequest)
 		return
 	}
-
-	w.Header().Add("Content-Type", "text/html; charset=UTF-8")
 	w.Header().Set("Location", string(fullURL))
+	w.Header().Add("Content-Type", "text/html; charset=UTF-8")
 	w.WriteHeader(307)
 }
 
-func ShortenerURLHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ShortenerURLHandler(w http.ResponseWriter, r *http.Request) {
 
 	logrus.Debug("ShortenerURLHandler start")
 	defer logrus.Debug("ShortenerURLHandler end")
-	logrus.Debugf("Base URL %s", baseURL)
+	logrus.Debugf("Base URL %s", h.BaseURL)
 
 	if r.Method != http.MethodPost {
 		http.Error(w, "Bad request", http.StatusBadRequest)
@@ -61,19 +65,20 @@ func ShortenerURLHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Создание сокращенного URL
-	shortURL := shortener.RandStringBytes(7)
-	for _, ok := Store.Get(shortURL); ok; {
-		shortURL = shortener.RandStringBytes(7)
-		_, ok = Store.Get(shortURL)
+	shortURL := tools.RandStringBytes(7)
+	for _, ok := h.Store.Get(shortURL); ok; {
+		shortURL = tools.RandStringBytes(7)
+		_, ok = h.Store.Get(shortURL)
 	}
 
 	w.WriteHeader(201)
-	w.Write([]byte(baseURL + shortURL))
+	w.Write([]byte(h.BaseURL + shortURL))
 
-	Store.Set(shortURL, string(fullURL))
+	h.Store.Set(shortURL, string(fullURL))
 }
 
-func APIShortenerURLHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) APIShortenerURLHandler(w http.ResponseWriter, r *http.Request) {
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
@@ -92,16 +97,14 @@ func APIShortenerURLHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	fmt.Println(docoder.URL)
 
 	// Создание сокращенного URL
-	shortURL := shortener.RandStringBytes(7)
-	for _, ok := Store.Get(shortURL); ok; {
-		shortURL = shortener.RandStringBytes(7)
-		_, ok = Store.Get(shortURL)
+	shortURL := tools.RandStringBytes(7)
+	for _, ok := h.Store.Get(shortURL); ok; {
+		shortURL = tools.RandStringBytes(7)
+		_, ok = h.Store.Get(shortURL)
 	}
-	fmt.Println(docoder.URL)
-	Store.Set(shortURL, string(docoder.URL))
+	h.Store.Set(shortURL, string(docoder.URL))
 
 	// Запись ответа JSON в тело ответа
 	w.Header().Set("Content-Type", "application/json")
@@ -110,7 +113,7 @@ func APIShortenerURLHandler(w http.ResponseWriter, r *http.Request) {
 	value := struct {
 		Result string `json:"result"`
 	}{
-		Result: baseURL + shortURL,
+		Result: h.BaseURL + shortURL,
 	}
 
 	buf := bytes.NewBuffer([]byte{})

@@ -1,10 +1,8 @@
-package config_test
+package config
 
 import (
 	"flag"
 	"testing"
-
-	"github.com/Longreader/go-shortener-url.git/config"
 )
 
 func TestFlags(t *testing.T) {
@@ -27,21 +25,21 @@ func TestGetValue(t *testing.T) {
 	}{
 		{
 			name: "positive test #1 GetAddress",
-			foo:  config.GetAddress,
+			foo:  getAddress,
 			want: want{
 				value: "127.0.0.1:8080",
 			},
 		},
 		{
 			name: "positive test #2 GetURL",
-			foo:  config.GetURL,
+			foo:  getURL,
 			want: want{
 				value: "http://127.0.0.1:8080/",
 			},
 		},
 		{
 			name: "positive test #2 GetPath",
-			foo:  config.GetStoragePath,
+			foo:  getStoragePath,
 			want: want{
 				value: "",
 			},
