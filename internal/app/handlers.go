@@ -2,12 +2,11 @@ package app
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-
-	//indirect
 
 	"github.com/Longreader/go-shortener-url.git/internal/tools"
 	"github.com/go-chi/chi"
@@ -41,6 +40,10 @@ func (h *Handler) IDGetHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("Wrong ID %s", fullURL), http.StatusBadRequest)
 		return
 	}
+
+	// if r.Header.Get("Accept-Encoding") == "gzip" {
+	// 	w.Header().Set("")
+	// }
 	w.Header().Set("Location", string(fullURL))
 	w.Header().Add("Content-Type", "text/html; charset=UTF-8")
 	w.WriteHeader(307)
@@ -56,15 +59,29 @@ func (h *Handler) ShortenerURLHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
-	// Читаем из тела запроса
-	fullURL, err := io.ReadAll(r.Body)
+
+	var reader io.Reader
+
+	if r.Header.Get(`Content-Encoding`) == `gzip` {
+		gz, err := gzip.NewReader(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		reader = gz
+		defer gz.Close()
+	} else {
+		reader = r.Body
+	}
+
+	fullURL, err := io.ReadAll(reader)
 	defer r.Body.Close()
-	// Отлавливаем возможную ошибку
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	// Создание сокращенного URL
+
 	shortURL := tools.RandStringBytes(7)
 	for _, ok := h.Store.Get(shortURL); ok; {
 		shortURL = tools.RandStringBytes(7)
@@ -88,17 +105,31 @@ func (h *Handler) APIShortenerURLHandler(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "Bad agent request", http.StatusNotAcceptable)
 		return
 	}
+
+	var reader io.Reader
+
+	if r.Header.Get(`Content-Encoding`) == `gzip` {
+		gz, err := gzip.NewReader(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		reader = gz
+		defer gz.Close()
+	} else {
+		reader = r.Body
+	}
+
 	defer r.Body.Close()
 
 	docoder := struct {
 		URL string `json:"url"`
 	}{}
-	if err := json.NewDecoder(r.Body).Decode(&docoder); err != nil {
+	if err := json.NewDecoder(reader).Decode(&docoder); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// Создание сокращенного URL
 	shortURL := tools.RandStringBytes(7)
 	for _, ok := h.Store.Get(shortURL); ok; {
 		shortURL = tools.RandStringBytes(7)
@@ -106,7 +137,6 @@ func (h *Handler) APIShortenerURLHandler(w http.ResponseWriter, r *http.Request)
 	}
 	h.Store.Set(shortURL, string(docoder.URL))
 
-	// Запись ответа JSON в тело ответа
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
