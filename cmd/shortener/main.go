@@ -19,13 +19,13 @@ func main() {
 
 	cfg := config.NewConfig()
 
-	db := storage.New(storage.Config{
+	db, err := storage.New(storage.Config{
 		StoragePath: cfg.StoragePath,
 	})
 
-	// if err != nil {
-	// 	logrus.Fatal("Error database connection: ", err)
-	// }
+	if err != nil {
+		logrus.Fatal("Error database connection: ", err)
+	}
 
 	h := app.NewHandler(
 		db,

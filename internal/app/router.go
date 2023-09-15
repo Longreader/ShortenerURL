@@ -22,6 +22,7 @@ func (h *Handler) InitRouter() chi.Router {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Compress(5))
+	r.Use(DecompresMiddleware)
 	r.Use(middleware.Recoverer)
 
 	r.Get("/{id:[0-9A-Za-z]+}", h.IDGetHandler)

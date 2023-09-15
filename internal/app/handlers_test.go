@@ -18,8 +18,8 @@ import (
 
 func TestHandler_ShortenerURLHandler(t *testing.T) {
 	type fields struct {
-		Store   *storage.Storage
-		BaseURL string
+		StoragePath string
+		BaseURL     string
 	}
 	type args struct {
 		w *httptest.ResponseRecorder
@@ -39,12 +39,8 @@ func TestHandler_ShortenerURLHandler(t *testing.T) {
 		{
 			name: "POSITIVE TEST #1",
 			fields: fields{
-				Store: storage.New(
-					storage.Config{
-						StoragePath: "",
-					},
-				),
-				BaseURL: "http//:localhost:8000/",
+				StoragePath: "",
+				BaseURL:     "http//:localhost:8000/",
 			},
 			args: args{
 				w: httptest.NewRecorder(),
@@ -59,12 +55,8 @@ func TestHandler_ShortenerURLHandler(t *testing.T) {
 		{
 			name: "NEGATIVE TEST #1",
 			fields: fields{
-				Store: storage.New(
-					storage.Config{
-						StoragePath: "",
-					},
-				),
-				BaseURL: "http//:localhost:8000/",
+				StoragePath: "",
+				BaseURL:     "http//:localhost:8000/",
 			},
 			args: args{
 				w: httptest.NewRecorder(),
@@ -79,8 +71,17 @@ func TestHandler_ShortenerURLHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
+			Store, err := storage.New(
+				storage.Config{
+					StoragePath: "",
+				},
+			)
+
+			assert.Nil(t, err)
+
 			h := &Handler{
-				Store:   tt.fields.Store,
+				Store:   Store,
 				BaseURL: tt.fields.BaseURL,
 			}
 
@@ -92,9 +93,7 @@ func TestHandler_ShortenerURLHandler(t *testing.T) {
 			defer resp.Body.Close()
 
 			resBody, err := io.ReadAll(resp.Body)
-			if err != nil {
-				t.Fatal(err)
-			}
+			assert.Nil(t, err)
 
 			fmt.Println(resp.StatusCode)
 			fmt.Println(resp.Header.Get("Content-Type"))
@@ -109,8 +108,8 @@ func TestHandler_ShortenerURLHandler(t *testing.T) {
 
 func TestHandler_IDGetHandler(t *testing.T) {
 	type fields struct {
-		Store   *storage.Storage
-		BaseURL string
+		StoragePath string
+		BaseURL     string
 	}
 	type args struct {
 		w *httptest.ResponseRecorder
@@ -136,12 +135,8 @@ func TestHandler_IDGetHandler(t *testing.T) {
 		{
 			name: "POSITIVE TEST #1",
 			fields: fields{
-				Store: storage.New(
-					storage.Config{
-						StoragePath: "",
-					},
-				),
-				BaseURL: "http//:localhost:8000/",
+				StoragePath: "",
+				BaseURL:     "http//:localhost:8000/",
 			},
 			args: args{
 				w: httptest.NewRecorder(),
@@ -160,8 +155,17 @@ func TestHandler_IDGetHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
+			Store, err := storage.New(
+				storage.Config{
+					StoragePath: tt.fields.StoragePath,
+				},
+			)
+
+			assert.Nil(t, err)
+
 			h := &Handler{
-				Store:   tt.fields.Store,
+				Store:   Store,
 				BaseURL: tt.fields.BaseURL,
 			}
 
@@ -172,15 +176,6 @@ func TestHandler_IDGetHandler(t *testing.T) {
 
 			tt.args.r = tt.args.r.WithContext(context.WithValue(tt.args.r.Context(), chi.RouteCtxKey, rctx))
 
-			// r := h.InitRouter()
-
-			// ts := httptest.NewServer(r)
-			// defer ts.Close()
-
-			// resp, err := http.DefaultClient.Do(tt.args.r)
-
-			// assert.Nil(t, err)
-
 			handler := http.HandlerFunc(h.IDGetHandler)
 
 			handler.ServeHTTP(tt.args.w, tt.args.r)
@@ -190,9 +185,7 @@ func TestHandler_IDGetHandler(t *testing.T) {
 			defer resp.Body.Close()
 
 			resBody, err := io.ReadAll(resp.Body)
-			if err != nil {
-				t.Fatal(err)
-			}
+			assert.Nil(t, err)
 
 			fmt.Println(resp.StatusCode)
 			fmt.Println(resp.Header.Get("Content-Type"))
@@ -206,8 +199,8 @@ func TestHandler_IDGetHandler(t *testing.T) {
 
 func TestHandler_APIShortenerURLHandler(t *testing.T) {
 	type fields struct {
-		Store   *storage.Storage
-		BaseURL string
+		StoragePath string
+		BaseURL     string
 	}
 	type args struct {
 		w *httptest.ResponseRecorder
@@ -227,12 +220,8 @@ func TestHandler_APIShortenerURLHandler(t *testing.T) {
 		{
 			name: "POSITIVE TEST #1",
 			fields: fields{
-				Store: storage.New(
-					storage.Config{
-						StoragePath: "",
-					},
-				),
-				BaseURL: "http//:localhost:8000/",
+				StoragePath: "",
+				BaseURL:     "http//:localhost:8000/",
 			},
 			args: args{
 				w: httptest.NewRecorder(),
@@ -247,12 +236,8 @@ func TestHandler_APIShortenerURLHandler(t *testing.T) {
 		{
 			name: "POSITIVE TEST #2",
 			fields: fields{
-				Store: storage.New(
-					storage.Config{
-						StoragePath: "",
-					},
-				),
-				BaseURL: "http//:localhost:8000/",
+				StoragePath: "",
+				BaseURL:     "http//:localhost:8000/",
 			},
 			args: args{
 				w: httptest.NewRecorder(),
@@ -267,8 +252,17 @@ func TestHandler_APIShortenerURLHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
+			Store, err := storage.New(
+				storage.Config{
+					StoragePath: tt.fields.StoragePath,
+				},
+			)
+
+			assert.Nil(t, err)
+
 			h := &Handler{
-				Store:   tt.fields.Store,
+				Store:   Store,
 				BaseURL: tt.fields.BaseURL,
 			}
 

@@ -2,7 +2,6 @@ package app
 
 import (
 	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -41,12 +40,9 @@ func (h *Handler) IDGetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if r.Header.Get("Accept-Encoding") == "gzip" {
-	// 	w.Header().Set("")
-	// }
-	w.Header().Set("Location", string(fullURL))
+	w.Header().Add("Location", string(fullURL))
 	w.Header().Add("Content-Type", "text/html; charset=UTF-8")
-	w.WriteHeader(307)
+	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
 func (h *Handler) ShortenerURLHandler(w http.ResponseWriter, r *http.Request) {
@@ -60,21 +56,7 @@ func (h *Handler) ShortenerURLHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var reader io.Reader
-
-	if r.Header.Get(`Content-Encoding`) == `gzip` {
-		gz, err := gzip.NewReader(r.Body)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		reader = gz
-		defer gz.Close()
-	} else {
-		reader = r.Body
-	}
-
-	fullURL, err := io.ReadAll(reader)
+	fullURL, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 
 	if err != nil {
@@ -88,7 +70,8 @@ func (h *Handler) ShortenerURLHandler(w http.ResponseWriter, r *http.Request) {
 		_, ok = h.Store.Get(shortURL)
 	}
 
-	w.WriteHeader(201)
+	w.WriteHeader(http.StatusCreated)
+	w.Header().Add("Content-Type", "text/plain")
 	w.Write([]byte(h.BaseURL + shortURL))
 
 	h.Store.Set(shortURL, string(fullURL))
@@ -106,26 +89,12 @@ func (h *Handler) APIShortenerURLHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	var reader io.Reader
-
-	if r.Header.Get(`Content-Encoding`) == `gzip` {
-		gz, err := gzip.NewReader(r.Body)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		reader = gz
-		defer gz.Close()
-	} else {
-		reader = r.Body
-	}
-
 	defer r.Body.Close()
 
 	docoder := struct {
 		URL string `json:"url"`
 	}{}
-	if err := json.NewDecoder(reader).Decode(&docoder); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&docoder); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

@@ -10,7 +10,7 @@ type StorageItem struct {
 	ShortURL string `json:"short_URL"`
 }
 
-type produser struct {
+type producer struct {
 	file    *os.File
 	encoder *json.Encoder
 }
@@ -20,22 +20,22 @@ type consumer struct {
 	decoder *json.Decoder
 }
 
-func NewProduser(fileName string) (*produser, error) {
+func NewProducer(fileName string) (*producer, error) {
 	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
 	if err != nil {
 		return nil, err
 	}
-	return &produser{
+	return &producer{
 		file:    file,
 		encoder: json.NewEncoder(file),
 	}, nil
 }
 
-func (p *produser) WriteURL(st *StorageItem) error {
+func (p *producer) WriteURL(st *StorageItem) error {
 	return p.encoder.Encode(&st)
 }
 
-func (p *produser) Close() error {
+func (p *producer) Close() error {
 	return p.file.Close()
 }
 

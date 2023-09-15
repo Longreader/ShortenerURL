@@ -2,7 +2,6 @@ package storage
 
 import (
 	"io"
-	"log"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -18,7 +17,7 @@ type Storage struct {
 	storage     map[string]string
 }
 
-func New(cfg Config) *Storage {
+func New(cfg Config) (*Storage, error) {
 	logrus.Debug("New Storage")
 	defer logrus.Debug("New storage created")
 	path := cfg.StoragePath
@@ -26,12 +25,13 @@ func New(cfg Config) *Storage {
 		return &Storage{
 			storage:     make(map[string]string),
 			storagePath: path,
-		}
+		}, nil
 	} else {
 		logrus.Debug("New storage creating from file")
 		consumer, err := NewConsumer(path)
 		if err != nil {
-			log.Fatal(err)
+			logrus.Error(err)
+			return nil, err
 		}
 		defer consumer.Close()
 		st := Storage{
@@ -44,13 +44,14 @@ func New(cfg Config) *Storage {
 				if err == io.EOF {
 					break
 				} else {
-					log.Fatal(err)
+					logrus.Error((err))
+					return nil, err
 				}
 			}
 			logrus.Debugf("Short url %s long url %s", readItem.ShortURL, readItem.LongURL)
 			st.storage[readItem.ShortURL] = readItem.LongURL
 		}
-		return &st
+		return &st, nil
 	}
 }
 
@@ -73,25 +74,28 @@ func (st *Storage) count() int {
 	return len(st.storage)
 }
 
-func (st *Storage) Set(key, value string) {
+func (st *Storage) Set(key, value string) error {
 	st.Lock()
 	defer st.Unlock()
 	st.set(key, value)
 	path := st.storagePath
 	if path != "" {
-		produser, err := NewProduser(path)
+		producer, err := NewProducer(path)
 		if err != nil {
-			log.Fatal(err)
+			logrus.Error(err)
+			return err
 		}
-		defer produser.Close()
+		defer producer.Close()
 		st := StorageItem{
 			ShortURL: key,
 			LongURL:  value,
 		}
-		if err := produser.WriteURL(&st); err != nil {
-			log.Fatal(err)
+		if err := producer.WriteURL(&st); err != nil {
+			logrus.Error(err)
+			return err
 		}
 	}
+	return nil
 
 }
 
