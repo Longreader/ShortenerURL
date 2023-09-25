@@ -1,14 +1,19 @@
-package shortener
+package tools
 
 import (
 	"math/rand"
+	"time"
 )
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const intBytes = "0123456789"
 
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
 func RandStringBytes(n int) string {
-	// randStringBytes - Create random short link
+	// randStringBytes - создание короткого URL
 	b := make([]byte, n)
 	for i := range b {
 		if i%2 == 0 {

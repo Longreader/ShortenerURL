@@ -1,24 +1,40 @@
 package main
 
 import (
-	"log"
+	"flag"
 	"net/http"
 
 	"github.com/Longreader/go-shortener-url.git/internal/app"
-	"github.com/go-chi/chi/middleware"
-	"github.com/go-chi/chi/v5"
+	"github.com/Longreader/go-shortener-url.git/internal/config"
+	"github.com/Longreader/go-shortener-url.git/internal/storage"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
 
-	r := chi.NewRouter()
+	logrus.StandardLogger().Level = logrus.DebugLevel
+	logrus.SetFormatter(&logrus.JSONFormatter{})
 
-	r.Use(middleware.Recoverer)
+	flag.Parse()
 
-	r.Get("/{id:[0-9A-Za-z]+}", app.IDGetHandler)
-	r.Post("/", app.ShortenerURLHandler)
+	cfg := config.NewConfig()
+
+	db, err := storage.New(storage.Config{
+		StoragePath: cfg.StoragePath,
+	})
+
+	if err != nil {
+		logrus.Fatal("Error database connection: ", err)
+	}
+
+	h := app.NewHandler(
+		db,
+		cfg.BaseURL,
+	)
+
+	r := h.InitRouter()
 
 	http.Handle("/", r)
 
-	log.Fatal(http.ListenAndServe("127.0.0.1:8080", r))
+	logrus.Fatal(http.ListenAndServe(cfg.ServerAddress, r))
 }
