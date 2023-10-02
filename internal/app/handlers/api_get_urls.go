@@ -14,7 +14,7 @@ type UserLink struct {
 	OriginalURL repository.URL `json:"original_url"`
 }
 
-func (h *Handler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) APIGetUserURLsHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := auth.GetUser(r.Context())
 	if err != nil {
 		log.Printf("unable to parse user uuid: %v", err)
