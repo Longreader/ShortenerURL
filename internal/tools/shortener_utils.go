@@ -12,7 +12,7 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-func RandStringBytes(n int) string {
+func RandStringBytes(n int) (string, error) {
 	// randStringBytes - создание короткого URL
 	b := make([]byte, n)
 	for i := range b {
@@ -22,5 +22,5 @@ func RandStringBytes(n int) string {
 			b[i] = intBytes[rand.Intn(9)]
 		}
 	}
-	return string(b)
+	return string(b), nil
 }
