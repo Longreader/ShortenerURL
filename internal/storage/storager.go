@@ -21,6 +21,7 @@ type Storager interface {
 	GetAll( // Получить все ссылки пользователя.
 		ctx context.Context, user repository.User,
 	) (links []repository.LinkData, err error)
+	Ping(ctx context.Context) (bool, error)
 }
 
 // StoragerType - int для хранения типа хранилища.
@@ -55,9 +56,9 @@ func NewStorager(cfg config.Config) (Storager, error) {
 }
 
 func getStoragerType(cfg config.Config) StoragerType {
-	// if cfg.DatabaseDSN != "" {
-	// 	return PsqlStorage
-	// }
+	if cfg.DatabaseDSN != "" {
+		return PsqlStorage
+	}
 	if cfg.FileStoragePath != "" {
 		return FileStorage
 	}

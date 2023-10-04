@@ -11,6 +11,7 @@ func (h *Handler) IDGetHandler(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if id == "" {
 		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
 	}
 
 	url, err := h.st.Get(r.Context(), id)

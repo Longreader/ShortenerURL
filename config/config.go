@@ -9,6 +9,7 @@ type Config struct {
 	ServerAddress   string
 	ServerBaseURL   string
 	FileStoragePath string
+	DatabaseDSN     string
 	CookieKey       []byte
 }
 
@@ -44,12 +45,17 @@ func (cfg *Config) loadEnv() {
 	if s, ok := os.LookupEnv("FILE_STORAGE_PATH"); ok {
 		cfg.FileStoragePath = s
 	}
+
+	if s, ok := os.LookupEnv("DATABASE_DSN"); ok {
+		cfg.DatabaseDSN = s
+	}
 }
 
 func (cfg *Config) loadArgs() {
 	flag.StringVar(&cfg.ServerAddress, "a", cfg.ServerAddress, "server address")
 	flag.StringVar(&cfg.ServerBaseURL, "b", cfg.ServerBaseURL, "server base url")
 	flag.StringVar(&cfg.FileStoragePath, "f", cfg.FileStoragePath, "file storage path")
+	flag.StringVar(&cfg.DatabaseDSN, "d", cfg.DatabaseDSN, "database data sourse name")
 
 	flag.Parse()
 }

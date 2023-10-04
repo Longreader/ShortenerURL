@@ -100,3 +100,7 @@ func (st *MemoryStorage) GetAll(_ context.Context, user repository.User) (data [
 
 	return data, nil
 }
+
+func (st *MemoryStorage) Ping(_ context.Context) (bool, error) {
+	return true, nil
+}
