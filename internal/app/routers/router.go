@@ -16,6 +16,8 @@ func NewRouter(m middlewares.Middlewares, h *handlers.Handler) chi.Router {
 	r.Use(m.UserCookie)
 	r.Use(middleware.Recoverer)
 
+	r.Get("/ping", h.Ping)
+
 	r.Get("/{id:[0-9A-Za-z]+}", h.IDGetHandler)
 	r.Post("/", h.ShortenerURLHandler)
 	r.Get("/api/user/urls", h.APIGetUserURLsHandler)
