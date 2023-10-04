@@ -93,11 +93,11 @@ func (st *PsqlStorage) Get(
 
 }
 
-func (db *PsqlStorage) Ping(ctx context.Context) (bool, error) {
+func (st *PsqlStorage) Ping(ctx context.Context) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 
 	defer cancel()
-	err := db.db.PingContext(ctx)
+	err := st.db.PingContext(ctx)
 	if err != nil {
 		return false, err
 	}
