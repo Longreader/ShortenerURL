@@ -8,6 +8,7 @@ import (
 	"github.com/Longreader/go-shortener-url.git/internal/repository"
 	"github.com/Longreader/go-shortener-url.git/internal/repository/harddrive"
 	"github.com/Longreader/go-shortener-url.git/internal/repository/memory"
+	"github.com/Longreader/go-shortener-url.git/internal/repository/postgres"
 )
 
 // Storager - интерфейс для хранилища.
@@ -42,8 +43,8 @@ const (
 //  2. MemoryStorage
 func NewStorager(cfg config.Config) (Storager, error) {
 	switch getStoragerType(cfg) {
-	// case PsqlStorage:
-	// 	return postgres.NewPsqlStorage(cfg.DatabaseDSN)
+	case PsqlStorage:
+		return postgres.NewPsqlStorage(cfg.DatabaseDSN)
 	case FileStorage:
 		file, err := os.OpenFile(cfg.FileStoragePath, os.O_RDWR|os.O_CREATE, 0o777)
 		if err != nil {
