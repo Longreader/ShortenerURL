@@ -123,6 +123,7 @@ func (st *PsqlStorage) GetAll(
 		`SELECT url, id, user_id FROM links WHERE user_id=$1`,
 		user,
 	)
+
 	if err == sql.ErrNoRows {
 		return nil, err
 	} else if err != nil {
@@ -141,6 +142,12 @@ func (st *PsqlStorage) GetAll(
 
 		data = append(data, ld)
 	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
 	return data, nil
 }
 
