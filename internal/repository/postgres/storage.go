@@ -32,6 +32,8 @@ func NewPsqlStorage(dsn string) (*PsqlStorage, error) {
 		return nil, err
 	}
 
+	st.Setup()
+
 	return st, nil
 }
 
