@@ -35,6 +35,22 @@ func NewPsqlStorage(dsn string) (*PsqlStorage, error) {
 	return st, nil
 }
 
+func (st *PsqlStorage) Setup() {
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	st.db.MustExecContext(
+		ctx,
+		`CREATE TABLE IF NOT EXISTS links (
+			id      varchar(255) NOT NULL UNIQUE,
+			url     varchar(255) NOT NULL UNIQUE,
+			user_id uuid         NOT NULL
+		)`,
+	)
+
+}
+
 // Set method for PsqlStorage storage
 func (st *PsqlStorage) Set(
 	ctx context.Context,
@@ -78,7 +94,7 @@ func (st *PsqlStorage) Get(
 
 	row := st.db.QueryRowContext(
 		ctx,
-		`SELECT * FROM links WHERE id=$1`,
+		`SELECT url FROM links WHERE id=$1`,
 		id,
 	)
 
@@ -91,6 +107,39 @@ func (st *PsqlStorage) Get(
 	}
 	return url, nil
 
+}
+
+func (st *PsqlStorage) GetAll(
+	ctx context.Context,
+	user repository.User,
+) (data []repository.LinkData, err error) {
+
+	data = make([]repository.LinkData, 0)
+
+	rows, err := st.db.QueryContext(
+		ctx,
+		`SELECT url, id, user_id FROM links WHERE user_id=$1`,
+		user,
+	)
+	if err == sql.ErrNoRows {
+		return nil, err
+	} else if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var ld repository.LinkData
+
+		err := rows.Scan(&ld.URL, &ld.ID, &ld.User)
+		if err != nil {
+			return data, err
+		}
+
+		data = append(data, ld)
+	}
+	return data, nil
 }
 
 func (st *PsqlStorage) Ping(ctx context.Context) (bool, error) {
