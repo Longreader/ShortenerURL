@@ -22,6 +22,7 @@ func NewRouter(m middlewares.Middlewares, h *handlers.Handler) chi.Router {
 	r.Post("/", h.ShortenerURLHandler)
 	r.Get("/api/user/urls", h.APIGetUserURLsHandler)
 	r.Post("/api/shorten", h.APIShortenerURLHandler)
+	r.Get("/api/shorten/batch", h.APISetShortenerURLsHandler)
 
 	return r
 }

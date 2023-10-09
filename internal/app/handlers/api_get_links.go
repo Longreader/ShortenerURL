@@ -9,7 +9,7 @@ import (
 	"github.com/Longreader/go-shortener-url.git/internal/repository"
 )
 
-type UserLink struct {
+type APIGetUserURLsHandlerResponse struct {
 	ShortURL    repository.URL `json:"short_url"`
 	OriginalURL repository.URL `json:"original_url"`
 }
@@ -28,9 +28,9 @@ func (h *Handler) APIGetUserURLsHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	response := make([]UserLink, 0)
+	response := make([]APIGetUserURLsHandlerResponse, 0)
 	for _, link := range links {
-		response = append(response, UserLink{
+		response = append(response, APIGetUserURLsHandlerResponse{
 			ShortURL:    h.genShortLink(link.ID),
 			OriginalURL: link.URL,
 		})
