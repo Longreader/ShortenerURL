@@ -78,12 +78,11 @@ func (st *PsqlStorage) Set(
 			if errors.Is(err, sql.ErrNoRows) {
 				continue
 			} else {
-
 				err := st.db.GetContext(
 					ctx,
 					id,
-					`SECECT id FROM links WHERE url=$1 AND user_id=$2`,
-					url, user,
+					`SECECT id FROM links WHERE url=$1`,
+					url,
 				)
 				if err != nil {
 					return "", err
