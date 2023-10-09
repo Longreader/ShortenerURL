@@ -32,6 +32,7 @@ func (st *MemoryStorage) Set(
 	return st.SetLink(url, user)
 }
 
+// Set method for Storage
 func (st *MemoryStorage) SetLink(
 	url repository.URL,
 	user repository.User,
@@ -66,6 +67,7 @@ func (st *MemoryStorage) SetLink(
 	return id, nil
 }
 
+// Get method fot MemoryStorage storage
 func (st *MemoryStorage) Get(_ context.Context, id repository.ID) (url repository.URL, err error) {
 
 	st.RLock()
@@ -101,6 +103,7 @@ func (st *MemoryStorage) GetAll(_ context.Context, user repository.User) (data [
 	return data, nil
 }
 
+// Check connection with Storage
 func (st *MemoryStorage) Ping(_ context.Context) (bool, error) {
 	return true, nil
 }

@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/Longreader/go-shortener-url.git/internal/repository"
@@ -74,10 +75,20 @@ func (st *PsqlStorage) Set(
 			id, url, user,
 		)
 		if err != nil {
-			if err == sql.ErrNoRows {
+			if errors.Is(err, sql.ErrNoRows) {
 				continue
 			} else {
-				return "", repository.ErrURLAlreadyExists
+
+				err := st.db.GetContext(
+					ctx,
+					id,
+					`SECECT id FROM links WHERE id=$1 AND user_id=$2`,
+					url, user,
+				)
+				if err != nil {
+					return "", err
+				}
+				return id, repository.ErrURLAlreadyExists
 			}
 		} else {
 			break

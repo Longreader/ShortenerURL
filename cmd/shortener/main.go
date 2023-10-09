@@ -45,5 +45,6 @@ func main() {
 
 	http.Handle("/", r)
 
+	logrus.Info("Start service")
 	logrus.Fatal(http.ListenAndServe(cfg.ServerAddress, r))
 }

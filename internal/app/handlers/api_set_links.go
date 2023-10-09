@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"log"
 	"net/http"
 
 	"github.com/Longreader/go-shortener-url.git/internal/app/auth"
 	"github.com/Longreader/go-shortener-url.git/internal/repository"
+	"github.com/sirupsen/logrus"
 )
 
 type (
@@ -40,7 +40,7 @@ func (h *Handler) APISetShortenerURLsHandler(w http.ResponseWriter, r *http.Requ
 
 	user, err := auth.GetUser(r.Context())
 	if err != nil {
-		log.Printf("unable to parse user uuid: %v", err)
+		logrus.Printf("unable to parse user uuid: %v", err)
 		h.httpJSONError(w, "Server error", http.StatusInternalServerError)
 		return
 	}
@@ -64,11 +64,12 @@ func (h *Handler) APISetShortenerURLsHandler(w http.ResponseWriter, r *http.Requ
 		h.httpJSONError(w, "Server error", http.StatusInternalServerError)
 		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write(responseJSON)
 	if err != nil {
-		log.Printf("write failed: %v", err)
+		logrus.Printf("write failed: %v", err)
 	}
 }
