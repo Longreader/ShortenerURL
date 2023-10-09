@@ -8,6 +8,7 @@ import (
 
 	"github.com/Longreader/go-shortener-url.git/internal/repository"
 	"github.com/Longreader/go-shortener-url.git/internal/tools"
+	"github.com/sirupsen/logrus"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
@@ -78,13 +79,14 @@ func (st *PsqlStorage) Set(
 			if errors.Is(err, sql.ErrNoRows) {
 				continue
 			} else {
-				err := st.db.GetContext(
+				row := st.db.QueryRowContext(
 					ctx,
-					id,
-					`SECECT id FROM links WHERE url=$1`,
+					`SELECT id FROM links WHERE url=$1`,
 					url,
 				)
+				err := row.Scan(&id)
 				if err != nil {
+					logrus.Printf("Error scan value %s", err)
 					return "", err
 				}
 				return id, repository.ErrURLAlreadyExists
