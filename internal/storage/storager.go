@@ -19,7 +19,7 @@ type Storager interface {
 	Get( // Получить оригинальную ссылку по ID.
 		ctx context.Context, id repository.ID,
 	) (url repository.URL, err error)
-	GetAll( // Получить все ссылки пользователя.
+	GetAllByUser( // Получить все ссылки пользователя.
 		ctx context.Context, user repository.User,
 	) (links []repository.LinkData, err error)
 	Ping(ctx context.Context) (bool, error)

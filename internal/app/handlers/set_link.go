@@ -15,11 +15,11 @@ func (h *Handler) ShortenerURLHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 
 	b, err := io.ReadAll(r.Body)
-	defer r.Body.Close()
 	if err != nil || len(b) == 0 {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
+	defer r.Body.Close()
 
 	user, err := auth.GetUser(r.Context())
 	if err != nil {

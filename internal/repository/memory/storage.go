@@ -81,7 +81,7 @@ func (st *MemoryStorage) Get(_ context.Context, id repository.ID) (url repositor
 	return "", repository.ErrURLNotFound
 }
 
-func (st *MemoryStorage) GetAll(_ context.Context, user repository.User) (data []repository.LinkData, err error) {
+func (st *MemoryStorage) GetAllByUser(_ context.Context, user repository.User) (data []repository.LinkData, err error) {
 
 	st.RLock()
 	defer st.RUnlock()

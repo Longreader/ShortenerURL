@@ -22,7 +22,7 @@ func (h *Handler) APIGetUserURLsHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	links, err := h.st.GetAll(r.Context(), user)
+	links, err := h.st.GetAllByUser(r.Context(), user)
 	if err != nil {
 		h.httpJSONError(w, "Server error", http.StatusInternalServerError)
 		return

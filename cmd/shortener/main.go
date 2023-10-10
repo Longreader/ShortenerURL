@@ -21,7 +21,7 @@ func main() {
 
 	s, err := storage.NewStorager(cfg)
 	if err != nil {
-		panic(err)
+		logrus.Fatal("Error connection drop", err)
 	}
 
 	h := handlers.NewHandler(

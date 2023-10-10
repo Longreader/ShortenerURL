@@ -123,7 +123,7 @@ func (st *PsqlStorage) Get(
 
 }
 
-func (st *PsqlStorage) GetAll(
+func (st *PsqlStorage) GetAllByUser(
 	ctx context.Context,
 	user repository.User,
 ) (data []repository.LinkData, err error) {
@@ -136,9 +136,7 @@ func (st *PsqlStorage) GetAll(
 		user,
 	)
 
-	if err == sql.ErrNoRows {
-		return nil, err
-	} else if err != nil {
+	if errors.Is(err, nil) {
 		return nil, err
 	}
 
