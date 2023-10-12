@@ -136,7 +136,7 @@ func (st *PsqlStorage) GetAllByUser(
 		user,
 	)
 
-	if errors.Is(err, nil) {
+	if err != nil {
 		return nil, err
 	}
 
