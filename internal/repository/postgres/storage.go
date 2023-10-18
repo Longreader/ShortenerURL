@@ -63,7 +63,7 @@ func (st *PsqlStorage) Setup() {
 		`CREATE TABLE IF NOT EXISTS links (
 			id      varchar(255) NOT NULL UNIQUE,
 			url     varchar(255) NOT NULL UNIQUE,
-			deleted bool 		 NOT NULL DEFUALT FALSE;
+			deleted bool 		 NOT NULL DEFAULT FALSE;
 			user_id uuid         NOT NULL
 		);`,
 	)
