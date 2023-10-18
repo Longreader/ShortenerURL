@@ -47,6 +47,9 @@ func NewPsqlStorage(dsn string) (*PsqlStorage, error) {
 
 	st.Setup()
 
+	st.deleteWg.Add(1)
+	go st.DeleteLink(context.Background(), delBufferSize, delBufferTimeout)
+
 	return st, nil
 }
 
@@ -60,6 +63,7 @@ func (st *PsqlStorage) Setup() {
 		`CREATE TABLE IF NOT EXISTS links (
 			id      varchar(255) NOT NULL UNIQUE,
 			url     varchar(255) NOT NULL UNIQUE,
+			deleted bool 		 NOT NULL DEFUALT FALSE;
 			user_id uuid         NOT NULL
 		);`,
 	)
@@ -119,7 +123,7 @@ func (st *PsqlStorage) Get(
 
 	row := st.db.QueryRowContext(
 		ctx,
-		`SELECT url FROM links WHERE id=$1`,
+		`SELECT url, deleted FROM links WHERE id=$1`,
 		id,
 	)
 
