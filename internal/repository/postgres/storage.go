@@ -17,11 +17,17 @@ import (
 )
 
 type PsqlStorage struct {
-	db      *sqlx.DB
-	delCh   chan repository.LinkData
-	delWg   sync.WaitGroup
-	delQuit chan bool
+	db             *sqlx.DB
+	deleteCh       chan repository.LinkData
+	deleteWg       sync.WaitGroup
+	deleteShutdown chan struct{}
 }
+
+const (
+	delBufferSize    = 100
+	delBufferTimeout = time.Second
+	shutdownTimeout  = 15 * time.Second
+)
 
 func NewPsqlStorage(dsn string) (*PsqlStorage, error) {
 
@@ -132,46 +138,75 @@ func (st *PsqlStorage) Delete(
 	ids []repository.ID,
 	user repository.User,
 ) error {
-	go st.DeleteLink(ctx)
 	for _, id := range ids {
-		st.delWg.Add(1)
-		st.delCh <- repository.LinkData{ID: id, User: user}
+		st.deleteCh <- repository.LinkData{ID: id, User: user}
 	}
-	go func() {
-		defer st.delWg.Wait()
-		st.delQuit <- true
-	}()
 	return nil
 }
 
-func (st *PsqlStorage) DeleteLink(ctx context.Context) {
-	ids := make([]repository.ID, 0)
-	users := make([]repository.User, 0)
-loop:
+func (st *PsqlStorage) DeleteLink(ctx context.Context, bufferSize int, bufferTimeout time.Duration) {
+	ids := make([]repository.ID, 0, bufferSize)
+	users := make([]repository.User, 0, bufferSize)
+
+worker:
 	for {
 		select {
-		case v := <-st.delCh:
-			ids = append(ids, v.ID)
-			users = append(users, v.User)
-			st.delWg.Done()
-		case <-st.delQuit:
-			break loop
+
+		case <-st.deleteShutdown:
+			break worker
+
+		case <-ctx.Done():
+			break worker
+
+		default:
+
 		}
-	}
-	ctxLocal, cancelLocal := context.WithTimeout(ctx, time.Second*10)
 
-	_, err := st.db.ExecContext(
-		ctxLocal,
-		`UPDATE links SET deleted = TRUE 
-		 FROM (SELECT unnest($1::text[]) AS id, unnest($2::uuid[]) AS user) AS data_table
-		 WHERE links.id = data_table.id AND user_id = data_table.user`,
-		ids, users,
-	)
-	if err != nil {
-		log.Printf("update failed: %v", err)
+		ids = ids[:0]
+		users = users[:0]
+
+		timeoutCtx, timeoutCancel := context.WithTimeout(ctx, bufferTimeout)
+
+	loop:
+		for {
+			select {
+			case v := <-st.deleteCh:
+				ids = append(ids, v.ID)
+				users = append(users, v.User)
+				if len(ids) == bufferSize {
+					timeoutCancel()
+					break loop
+				}
+			case <-timeoutCtx.Done():
+				timeoutCancel()
+				break loop
+			case <-st.deleteShutdown:
+				timeoutCancel()
+				break loop
+			}
+		}
+
+		if len(ids) == 0 {
+			continue
+		}
+
+		ctxLocal, cancelLocal := context.WithTimeout(ctx, time.Second*10)
+
+		_, err := st.db.ExecContext(
+			ctxLocal,
+			`UPDATE links SET deleted = TRUE 
+             FROM (SELECT UNNEST($1::text[]) AS id, UNNEST($2::uuid[]) AS user) AS data_table
+             WHERE links.id = data_table.id AND user_id = data_table.user`,
+			ids, users,
+		)
+		if err != nil {
+			log.Printf("update failed: %v", err)
+		}
+
+		cancelLocal()
 	}
 
-	cancelLocal()
+	st.deleteWg.Done()
 }
 
 func (st *PsqlStorage) GetAllByUser(
@@ -221,4 +256,21 @@ func (st *PsqlStorage) Ping(ctx context.Context) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func (st *PsqlStorage) Close(_ context.Context) error {
+	close(st.deleteShutdown)
+
+	c := make(chan struct{})
+	go func() {
+		defer close(c)
+		st.deleteWg.Wait()
+	}()
+	select {
+	case <-c:
+	case <-time.After(shutdownTimeout):
+		log.Print("storage close timeout exceed")
+	}
+
+	return st.db.Close()
 }

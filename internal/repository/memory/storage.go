@@ -115,7 +115,7 @@ func (st *MemoryStorage) GetAllByUser(_ context.Context, user repository.User) (
 		if value.User != user {
 			continue
 		}
-		if value.Deleted == true {
+		if value.Deleted {
 			continue
 		}
 
@@ -132,4 +132,8 @@ func (st *MemoryStorage) GetAllByUser(_ context.Context, user repository.User) (
 // Check connection with Storage
 func (st *MemoryStorage) Ping(_ context.Context) (bool, error) {
 	return true, nil
+}
+
+func (st *MemoryStorage) Close(_ context.Context) error {
+	return nil
 }

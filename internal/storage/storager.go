@@ -28,6 +28,7 @@ type Storager interface {
 	Ping( // Проверить соединение с базой данных
 		ctx context.Context,
 	) (bool, error)
+	Close(ctx context.Context) error
 }
 
 // StoragerType - int для хранения типа хранилища.

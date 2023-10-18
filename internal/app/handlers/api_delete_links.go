@@ -45,7 +45,7 @@ func (h *Handler) APIDeleteUserURLsHandler(w http.ResponseWriter, r *http.Reques
 
 		err := h.st.Delete(ctx, ids, user)
 		if err != nil {
-			logrus.Debug("Unable to delete %v", err)
+			logrus.Debug("Unable to delete", err)
 		}
 	}()
 

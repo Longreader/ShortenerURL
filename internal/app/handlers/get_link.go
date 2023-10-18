@@ -19,7 +19,7 @@ func (h *Handler) IDGetHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Not found", http.StatusNotFound)
 		return
 	}
-	if deleted == true {
+	if deleted {
 		w.WriteHeader(http.StatusGone)
 		return
 	}
