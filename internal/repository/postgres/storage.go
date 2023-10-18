@@ -171,15 +171,18 @@ worker:
 		for {
 			select {
 			case v := <-st.deleteCh:
+
 				ids = append(ids, v.ID)
 				users = append(users, v.User)
 				if len(ids) == bufferSize {
 					timeoutCancel()
 					break loop
 				}
+
 			case <-timeoutCtx.Done():
 				timeoutCancel()
 				break loop
+
 			case <-st.deleteShutdown:
 				timeoutCancel()
 				break loop
