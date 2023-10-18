@@ -1,11 +1,13 @@
 package main
 
 import (
-	"flag"
 	"net/http"
 
-	"github.com/Longreader/go-shortener-url.git/internal/app"
-	"github.com/Longreader/go-shortener-url.git/internal/config"
+	"github.com/Longreader/go-shortener-url.git/config"
+	"github.com/Longreader/go-shortener-url.git/internal/app/auth"
+	"github.com/Longreader/go-shortener-url.git/internal/app/handlers"
+	"github.com/Longreader/go-shortener-url.git/internal/app/middlewares"
+	"github.com/Longreader/go-shortener-url.git/internal/app/routers"
 	"github.com/Longreader/go-shortener-url.git/internal/storage"
 	"github.com/sirupsen/logrus"
 )
@@ -15,26 +17,34 @@ func main() {
 	logrus.StandardLogger().Level = logrus.DebugLevel
 	logrus.SetFormatter(&logrus.JSONFormatter{})
 
-	flag.Parse()
-
 	cfg := config.NewConfig()
 
-	db, err := storage.New(storage.Config{
-		StoragePath: cfg.StoragePath,
-	})
-
+	s, err := storage.NewStorager(cfg)
 	if err != nil {
-		logrus.Fatal("Error database connection: ", err)
+		logrus.Fatal("Error connection drop", err)
 	}
 
-	h := app.NewHandler(
-		db,
-		cfg.BaseURL,
+	h := handlers.NewHandler(
+		s,
+		cfg.ServerBaseURL,
 	)
 
-	r := h.InitRouter()
+	a := auth.NewAuth(
+		cfg,
+	)
+
+	m := middlewares.NewMiddlewares(
+		cfg,
+		a,
+	)
+
+	r := routers.NewRouter(
+		m,
+		h,
+	)
 
 	http.Handle("/", r)
 
+	logrus.Info("Start service")
 	logrus.Fatal(http.ListenAndServe(cfg.ServerAddress, r))
 }

@@ -1,11 +1,11 @@
-package app
+package middlewares
 
 import (
 	"compress/gzip"
 	"net/http"
 )
 
-func DecompresMiddleware(next http.Handler) http.Handler {
+func (m *Middlewares) DecompresMiddleware(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
