@@ -24,9 +24,9 @@ type PsqlStorage struct {
 }
 
 const (
-	delBufferSize    = 100
+	delBufferSize    = 20
 	delBufferTimeout = time.Second
-	shutdownTimeout  = 15 * time.Second
+	shutdownTimeout  = 10 * time.Second
 )
 
 func NewPsqlStorage(dsn string) (*PsqlStorage, error) {
