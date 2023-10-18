@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
+	"sync"
 	"time"
 
 	"github.com/Longreader/go-shortener-url.git/internal/repository"
@@ -15,7 +17,10 @@ import (
 )
 
 type PsqlStorage struct {
-	db *sqlx.DB
+	db      *sqlx.DB
+	delCh   chan repository.LinkData
+	delWg   sync.WaitGroup
+	delQuit chan bool
 }
 
 func NewPsqlStorage(dsn string) (*PsqlStorage, error) {
@@ -102,7 +107,7 @@ func (st *PsqlStorage) Set(
 func (st *PsqlStorage) Get(
 	ctx context.Context,
 	id repository.ID,
-) (url repository.URL, err error) {
+) (url repository.URL, deleted bool, err error) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
 
@@ -112,15 +117,61 @@ func (st *PsqlStorage) Get(
 		id,
 	)
 
-	err = row.Scan(&url)
+	err = row.Scan(&url, &deleted)
 
 	if err == sql.ErrNoRows {
-		return "", repository.ErrURLNotFound
+		return "", false, repository.ErrURLNotFound
 	} else if err != nil {
-		return "", err
+		return "", false, err
 	}
-	return url, nil
+	return url, deleted, nil
+}
 
+func (st *PsqlStorage) Delete(
+	ctx context.Context,
+	ids []repository.ID,
+	user repository.User,
+) error {
+	go st.DeleteLink(ctx)
+	for _, id := range ids {
+		st.delWg.Add(1)
+		st.delCh <- repository.LinkData{ID: id, User: user}
+	}
+	go func() {
+		defer st.delWg.Wait()
+		st.delQuit <- true
+	}()
+	return nil
+}
+
+func (st *PsqlStorage) DeleteLink(ctx context.Context) {
+	ids := make([]repository.ID, 0)
+	users := make([]repository.User, 0)
+loop:
+	for {
+		select {
+		case v := <-st.delCh:
+			ids = append(ids, v.ID)
+			users = append(users, v.User)
+			st.delWg.Done()
+		case <-st.delQuit:
+			break loop
+		}
+	}
+	ctxLocal, cancelLocal := context.WithTimeout(ctx, time.Second*10)
+
+	_, err := st.db.ExecContext(
+		ctxLocal,
+		`UPDATE links SET deleted = TRUE 
+		 FROM (SELECT unnest($1::text[]) AS id, unnest($2::uuid[]) AS user) AS data_table
+		 WHERE links.id = data_table.id AND user_id = data_table.user`,
+		ids, users,
+	)
+	if err != nil {
+		log.Printf("update failed: %v", err)
+	}
+
+	cancelLocal()
 }
 
 func (st *PsqlStorage) GetAllByUser(
@@ -132,7 +183,7 @@ func (st *PsqlStorage) GetAllByUser(
 
 	rows, err := st.db.QueryContext(
 		ctx,
-		`SELECT url, id, user_id FROM links WHERE user_id=$1`,
+		`SELECT url, id, user_id FROM links WHERE user_id=$1 and deleted=FALSE`,
 		user,
 	)
 

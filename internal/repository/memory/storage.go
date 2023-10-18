@@ -68,17 +68,40 @@ func (st *MemoryStorage) SetLink(
 }
 
 // Get method fot MemoryStorage storage
-func (st *MemoryStorage) Get(_ context.Context, id repository.ID) (url repository.URL, err error) {
+func (st *MemoryStorage) Get(_ context.Context, id repository.ID) (url repository.URL, deleted bool, err error) {
 
 	st.RLock()
 	defer st.RUnlock()
 
 	data, ok := st.UserLinkStorage[id]
 	if ok {
-		return data.URL, nil
+		return data.URL, data.Deleted, nil
 	}
 
-	return "", repository.ErrURLNotFound
+	return "", false, repository.ErrURLNotFound
+}
+
+func (st *MemoryStorage) Delete(_ context.Context, ids []repository.ID, user repository.User) error {
+	for _, id := range ids {
+		_ = st.DeleteLink(id, user)
+	}
+	return nil
+}
+
+func (st *MemoryStorage) DeleteLink(id repository.ID, user repository.User) bool {
+	st.RWMutex.Lock()
+	defer st.RWMutex.Unlock()
+
+	link, ok := st.UserLinkStorage[id]
+	if !ok {
+		return ok
+	}
+	if link.User != user {
+		return false
+	}
+	link.Deleted = true
+	st.UserLinkStorage[id] = link
+	return true
 }
 
 func (st *MemoryStorage) GetAllByUser(_ context.Context, user repository.User) (data []repository.LinkData, err error) {
@@ -90,6 +113,9 @@ func (st *MemoryStorage) GetAllByUser(_ context.Context, user repository.User) (
 
 	for id, value := range st.UserLinkStorage {
 		if value.User != user {
+			continue
+		}
+		if value.Deleted == true {
 			continue
 		}
 
