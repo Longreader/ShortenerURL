@@ -5,7 +5,10 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/Longreader/go-shortener-url.git/internal/repository"
@@ -152,16 +155,14 @@ func (st *PsqlStorage) DeleteLink(ctx context.Context, bufferSize int, bufferTim
 	ids := make([]repository.ID, 0, bufferSize)
 	users := make([]repository.User, 0, bufferSize)
 
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
 worker:
 	for {
+
 		select {
-
-		case <-st.deleteShutdown:
+		case <-sigCh:
 			break worker
-
-		case <-ctx.Done():
-			break worker
-
 		default:
 
 		}
@@ -187,9 +188,6 @@ worker:
 				timeoutCancel()
 				break loop
 
-			case <-st.deleteShutdown:
-				timeoutCancel()
-				break loop
 			}
 		}
 
