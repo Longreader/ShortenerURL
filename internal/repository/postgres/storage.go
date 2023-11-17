@@ -27,16 +27,19 @@ type PsqlStorage struct {
 }
 
 const (
-	delBufferSize    = 20
+	delBufferSize    = 50
 	delBufferTimeout = time.Second
-	shutdownTimeout  = 10 * time.Second
+	shutdownTimeout  = 15 * time.Second
 )
 
 func NewPsqlStorage(dsn string) (*PsqlStorage, error) {
 
 	var err error
 
-	st := &PsqlStorage{}
+	st := &PsqlStorage{
+		deleteCh:       make(chan repository.LinkData),
+		deleteShutdown: make(chan struct{}),
+	}
 
 	st.db, err = sqlx.Open("pgx", dsn)
 	if err != nil {
@@ -275,10 +278,15 @@ func (st *PsqlStorage) Close(_ context.Context) error {
 		st.deleteWg.Wait()
 		c <- struct{}{}
 	}()
-	select {
-	case <-c:
-	case <-time.After(shutdownTimeout):
-		log.Print("storage close timeout exceed")
+loop:
+	for {
+		select {
+		case <-c:
+			break loop
+		case <-time.After(shutdownTimeout):
+			log.Print("storage close timeout exceed")
+			break loop
+		}
 	}
 
 	return st.db.Close()
