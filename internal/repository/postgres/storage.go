@@ -152,16 +152,19 @@ func (st *PsqlStorage) Delete(
 }
 
 func (st *PsqlStorage) DeleteLink(ctx context.Context, bufferSize int, bufferTimeout time.Duration) {
+
 	ids := make([]repository.ID, 0, bufferSize)
 	users := make([]repository.User, 0, bufferSize)
 
 	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 worker:
 	for {
 
 		select {
 		case <-sigCh:
+			break worker
+		case <-ctx.Done():
 			break worker
 		default:
 
@@ -270,6 +273,7 @@ func (st *PsqlStorage) Close(_ context.Context) error {
 	go func() {
 		defer close(c)
 		st.deleteWg.Wait()
+		c <- struct{}{}
 	}()
 	select {
 	case <-c:
