@@ -129,6 +129,10 @@ func (st *MemoryStorage) GetAllByUser(_ context.Context, user repository.User) (
 	return data, nil
 }
 
+func (st *MemoryStorage) RunDelete() {
+
+}
+
 // Check connection with Storage
 func (st *MemoryStorage) Ping(_ context.Context) (bool, error) {
 	return true, nil

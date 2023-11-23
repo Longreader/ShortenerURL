@@ -22,6 +22,8 @@ type Storager interface {
 	Delete( // Удалить указанные ссылки
 		ctx context.Context, ids []repository.ID, user repository.User,
 	) error
+	RunDelete( // Запуск процесса удаления под паттерн FanIn
+	)
 	GetAllByUser( // Получить все ссылки пользователя.
 		ctx context.Context, user repository.User,
 	) (links []repository.LinkData, err error)
