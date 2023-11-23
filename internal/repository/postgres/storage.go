@@ -5,10 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"log"
-	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/Longreader/go-shortener-url.git/internal/repository"
@@ -158,14 +155,12 @@ func (st *PsqlStorage) DeleteLink(ctx context.Context, bufferSize int, bufferTim
 
 	ids := make([]repository.ID, 0, bufferSize)
 	users := make([]repository.User, 0, bufferSize)
-
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	wait := make(chan struct{}, 1)
 worker:
 	for {
 
 		select {
-		case <-sigCh:
+		case <-wait:
 			break worker
 		case <-ctx.Done():
 			break worker
