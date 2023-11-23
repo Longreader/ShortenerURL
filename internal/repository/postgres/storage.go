@@ -233,11 +233,12 @@ func (st *PsqlStorage) GetAllByUser(
 }
 
 func (st *PsqlStorage) Ping(ctx context.Context) (bool, error) {
-	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 
+	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
 	err := st.db.PingContext(ctx)
 	if err != nil {
+		cancel()
 		return false, err
 	}
 	return true, nil
