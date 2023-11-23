@@ -139,58 +139,63 @@ func (st *PsqlStorage) Delete(
 	ids []repository.ID,
 	user repository.User,
 ) error {
-	for _, id := range ids {
-		st.deleteCh <- repository.LinkData{ID: id, User: user}
-	}
+	go func() {
+		for _, id := range ids {
+			st.deleteCh <- repository.LinkData{ID: id, User: user}
+		}
+	}()
 	return nil
 }
 
 func (st *PsqlStorage) DeleteLink(ids []repository.ID, users []repository.User) {
 
-	ctxLocal, cancelLocal := context.WithTimeout(context.Background(), delBufferTimeout)
+	go func(ids []repository.ID, users []repository.User) {
+		ctxLocal, cancelLocal := context.WithTimeout(context.Background(), delBufferTimeout)
 
-	_, err := st.db.ExecContext(
-		ctxLocal,
-		`UPDATE links SET deleted = TRUE
-			FROM (SELECT UNNEST($1::text[]) AS id, UNNEST($2::uuid[]) AS user) AS data_table
-			WHERE links.id = data_table.id AND user_id = data_table.user`,
-		ids, users,
-	)
-	if err != nil {
-		log.Printf("update failed: %v", err)
-	}
-	cancelLocal()
+		_, err := st.db.ExecContext(
+			ctxLocal,
+			`UPDATE links SET deleted = TRUE
+				FROM (SELECT UNNEST($1::text[]) AS id, UNNEST($2::uuid[]) AS user) AS data_table
+				WHERE links.id = data_table.id AND user_id = data_table.user`,
+			ids, users,
+		)
+		if err != nil {
+			log.Printf("update failed: %v", err)
+		}
+		cancelLocal()
+	}(ids, users)
 
 }
 
 func (st *PsqlStorage) RunDelete() {
 
-	ids := make([]repository.ID, 0, delBufferSize)
-	users := make([]repository.User, 0, delBufferSize)
+	go func() {
+		ids := make([]repository.ID, 0, delBufferSize)
+		users := make([]repository.User, 0, delBufferSize)
 
-	for {
-		localctx, cancel := context.WithTimeout(context.Background(), delBufferTimeout)
+		for {
+			localctx, cancel := context.WithTimeout(context.Background(), delBufferTimeout)
 
-		select {
-		case <-localctx.Done():
-			if len(ids) != 0 || len(users) != 0 {
-				st.DeleteLink(ids, users)
-			}
-			ids = ids[:0]
-			users = users[:0]
-			cancel()
-		case <-st.stop:
-			cancel()
-			return
-		case data, ok := <-st.deleteCh:
-			if !ok {
+			select {
+			case <-localctx.Done():
+				if len(ids) != 0 || len(users) != 0 {
+					st.DeleteLink(ids, users)
+				}
+				ids = ids[:0]
+				users = users[:0]
+				cancel()
+			case <-st.stop:
 				cancel()
 				return
+			case data, ok := <-st.deleteCh:
+				if !ok {
+					cancel()
+				}
+				ids = append(ids, data.ID)
+				users = append(users, data.User)
 			}
-			ids = append(ids, data.ID)
-			users = append(users, data.User)
 		}
-	}
+	}()
 
 }
 
