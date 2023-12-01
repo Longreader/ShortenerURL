@@ -6,6 +6,7 @@ import (
 
 	"github.com/Longreader/go-shortener-url.git/internal/repository"
 	"github.com/Longreader/go-shortener-url.git/internal/tools"
+	"github.com/sirupsen/logrus"
 )
 
 type MemoryStorage struct {
@@ -82,26 +83,29 @@ func (st *MemoryStorage) Get(_ context.Context, id repository.ID) (url repositor
 }
 
 func (st *MemoryStorage) Delete(_ context.Context, ids []repository.ID, user repository.User) error {
+
+	st.RWMutex.Lock()
+	defer st.RWMutex.Unlock()
 	for _, id := range ids {
-		_ = st.DeleteLink(id, user)
+		link, ok := st.UserLinkStorage[id]
+		if !ok {
+			logrus.Error("user does not exist")
+			continue
+		}
+		if link.User != user {
+			logrus.Error("error wrong user")
+			continue
+		}
+		// link.Deleted = true
+		// st.UserLinkStorage[id] = link
+		st.DeleteLink(link, id)
 	}
 	return nil
 }
 
-func (st *MemoryStorage) DeleteLink(id repository.ID, user repository.User) bool {
-	st.RWMutex.Lock()
-	defer st.RWMutex.Unlock()
-
-	link, ok := st.UserLinkStorage[id]
-	if !ok {
-		return ok
-	}
-	if link.User != user {
-		return false
-	}
+func (st *MemoryStorage) DeleteLink(link repository.LinkData, id repository.ID) {
 	link.Deleted = true
 	st.UserLinkStorage[id] = link
-	return true
 }
 
 func (st *MemoryStorage) GetAllByUser(_ context.Context, user repository.User) (data []repository.LinkData, err error) {

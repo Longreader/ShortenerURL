@@ -17,7 +17,7 @@ func (h *Handler) APIDeleteUserURLsHandler(w http.ResponseWriter, r *http.Reques
 
 	user, err := auth.GetUser(r.Context())
 	if err != nil {
-		log.Printf("unable to parse user uuid: %v", err)
+		log.Printf("unable to parse user uid: %v", err)
 		h.httpJSONError(w, "Server error", http.StatusInternalServerError)
 		return
 	}
@@ -25,7 +25,7 @@ func (h *Handler) APIDeleteUserURLsHandler(w http.ResponseWriter, r *http.Reques
 	b, err := io.ReadAll(r.Body)
 
 	if err != nil || len(b) == 0 {
-		log.Printf("unable to parse user uuid: %v", err)
+		log.Printf("error read request body: %v", err)
 		h.httpJSONError(w, "Bad request", http.StatusBadRequest)
 		return
 	}

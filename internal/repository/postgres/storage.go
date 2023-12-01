@@ -139,31 +139,27 @@ func (st *PsqlStorage) Delete(
 	ids []repository.ID,
 	user repository.User,
 ) error {
-	go func() {
-		for _, id := range ids {
-			st.deleteCh <- repository.LinkData{ID: id, User: user}
-		}
-	}()
+	for _, id := range ids {
+		st.deleteCh <- repository.LinkData{ID: id, User: user}
+	}
 	return nil
 }
 
 func (st *PsqlStorage) DeleteLink(ids []repository.ID, users []repository.User) {
 
-	go func(ids []repository.ID, users []repository.User) {
-		ctxLocal, cancelLocal := context.WithTimeout(context.Background(), delBufferTimeout)
+	ctxLocal, cancelLocal := context.WithTimeout(context.Background(), delBufferTimeout)
 
-		_, err := st.db.ExecContext(
-			ctxLocal,
-			`UPDATE links SET deleted = TRUE
-				FROM (SELECT UNNEST($1::text[]) AS id, UNNEST($2::uuid[]) AS user) AS data_table
-				WHERE links.id = data_table.id AND user_id = data_table.user`,
-			ids, users,
-		)
-		if err != nil {
-			log.Printf("update failed: %v", err)
-		}
-		cancelLocal()
-	}(ids, users)
+	_, err := st.db.ExecContext(
+		ctxLocal,
+		`UPDATE links SET deleted = TRUE
+			FROM (SELECT UNNEST($1::text[]) AS id, UNNEST($2::uuid[]) AS user) AS data_table
+			WHERE links.id = data_table.id AND user_id = data_table.user`,
+		ids, users,
+	)
+	if err != nil {
+		log.Printf("update failed: %v", err)
+	}
+	cancelLocal()
 
 }
 
@@ -174,22 +170,26 @@ func (st *PsqlStorage) RunDelete() {
 		users := make([]repository.User, 0, delBufferSize)
 
 		for {
-			localctx, cancel := context.WithTimeout(context.Background(), delBufferTimeout)
-
+			timer := time.NewTimer(delBufferTimeout)
 			select {
-			case <-localctx.Done():
+			case <-timer.C:
 				if len(ids) != 0 || len(users) != 0 {
 					st.DeleteLink(ids, users)
 				}
 				ids = ids[:0]
 				users = users[:0]
-				cancel()
 			case <-st.stop:
-				cancel()
+				if len(ids) != 0 || len(users) != 0 {
+					st.DeleteLink(ids, users)
+				}
 				return
 			case data, ok := <-st.deleteCh:
 				if !ok {
-					cancel()
+					return
+				}
+				if len(ids) == delBufferSize-1 || len(users) == delBufferSize-1 {
+					ids = ids[:0]
+					users = users[:0]
 				}
 				ids = append(ids, data.ID)
 				users = append(users, data.User)
