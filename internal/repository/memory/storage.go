@@ -134,7 +134,7 @@ func (st *MemoryStorage) GetAllByUser(_ context.Context, user repository.User) (
 }
 
 func (st *MemoryStorage) RunDelete() {
-
+	//methon implement interface
 }
 
 // Check connection with Storage

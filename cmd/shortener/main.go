@@ -43,7 +43,7 @@ func main() {
 		h,
 	)
 
-	s.RunDelete()
+	//s.RunDelete()
 
 	http.Handle("/", r)
 

@@ -48,9 +48,9 @@ func NewPsqlStorage(dsn string) (*PsqlStorage, error) {
 		return nil, err
 	}
 
-	err = st.RunDelete()
-
 	st.wg.Add(1)
+	st.RunDelete()
+
 	st.Setup()
 
 	return st, nil
@@ -169,7 +169,7 @@ func (st *PsqlStorage) DeleteLink(ids []repository.ID, users []repository.User) 
 
 }
 
-func (st *PsqlStorage) RunDelete() error {
+func (st *PsqlStorage) RunDelete() {
 
 	go func() {
 		ids := make([]repository.ID, 0, delBufferSize)
@@ -209,7 +209,6 @@ func (st *PsqlStorage) RunDelete() error {
 		}
 	}()
 
-	return nil
 }
 
 func (st *PsqlStorage) GetAllByUser(
