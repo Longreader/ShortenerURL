@@ -40,7 +40,7 @@ func (h *Handler) APIDeleteUserURLsHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	go func() {
-		ctx, cancel := context.WithTimeout(r.Context(), time.Minute*1)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*1)
 		defer cancel()
 
 		err := h.st.Delete(ctx, ids, user)

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/Longreader/go-shortener-url.git/internal/repository"
@@ -18,6 +19,7 @@ import (
 type PsqlStorage struct {
 	db       *sqlx.DB
 	deleteCh chan repository.LinkData
+	wg       *sync.WaitGroup
 	stop     chan struct{}
 }
 
@@ -33,6 +35,7 @@ func NewPsqlStorage(dsn string) (*PsqlStorage, error) {
 	st := &PsqlStorage{
 		deleteCh: make(chan repository.LinkData),
 		stop:     make(chan struct{}),
+		wg:       &sync.WaitGroup{},
 	}
 
 	st.db, err = sqlx.Open("pgx", dsn)
@@ -45,6 +48,9 @@ func NewPsqlStorage(dsn string) (*PsqlStorage, error) {
 		return nil, err
 	}
 
+	err = st.RunDelete()
+
+	st.wg.Add(1)
 	st.Setup()
 
 	return st, nil
@@ -163,16 +169,17 @@ func (st *PsqlStorage) DeleteLink(ids []repository.ID, users []repository.User) 
 
 }
 
-func (st *PsqlStorage) RunDelete() {
+func (st *PsqlStorage) RunDelete() error {
 
 	go func() {
 		ids := make([]repository.ID, 0, delBufferSize)
 		users := make([]repository.User, 0, delBufferSize)
-
+		theTicker := time.NewTicker(delBufferTimeout)
+		defer theTicker.Stop()
 		for {
-			timer := time.NewTimer(delBufferTimeout)
+			//timer := time.NewTimer(delBufferTimeout)
 			select {
-			case <-timer.C:
+			case <-theTicker.C:
 				if len(ids) != 0 || len(users) != 0 {
 					st.DeleteLink(ids, users)
 				}
@@ -182,10 +189,15 @@ func (st *PsqlStorage) RunDelete() {
 				if len(ids) != 0 || len(users) != 0 {
 					st.DeleteLink(ids, users)
 				}
+				st.wg.Done()
 				return
 			case data, ok := <-st.deleteCh:
 				if !ok {
+					st.wg.Done()
 					return
+				}
+				if len(ids) != 0 || len(users) != 0 {
+					st.DeleteLink(ids, users)
 				}
 				if len(ids) == delBufferSize-1 || len(users) == delBufferSize-1 {
 					ids = ids[:0]
@@ -197,6 +209,7 @@ func (st *PsqlStorage) RunDelete() {
 		}
 	}()
 
+	return nil
 }
 
 func (st *PsqlStorage) GetAllByUser(
@@ -252,6 +265,7 @@ func (st *PsqlStorage) Ping(ctx context.Context) (bool, error) {
 func (st *PsqlStorage) Close(_ context.Context) error {
 
 	st.stop <- struct{}{}
-
+	st.wg.Wait()
+	close(st.stop)
 	return st.db.Close()
 }
