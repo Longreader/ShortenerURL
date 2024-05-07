@@ -177,7 +177,6 @@ func (st *PsqlStorage) RunDelete() {
 		theTicker := time.NewTicker(delBufferTimeout)
 		defer theTicker.Stop()
 		for {
-			//timer := time.NewTimer(delBufferTimeout)
 			select {
 			case <-theTicker.C:
 				if len(ids) != 0 || len(users) != 0 {
@@ -196,10 +195,8 @@ func (st *PsqlStorage) RunDelete() {
 					st.wg.Done()
 					return
 				}
-				if len(ids) != 0 || len(users) != 0 {
-					st.DeleteLink(ids, users)
-				}
 				if len(ids) == delBufferSize-1 || len(users) == delBufferSize-1 {
+					st.DeleteLink(ids, users)
 					ids = ids[:0]
 					users = users[:0]
 				}
@@ -263,8 +260,7 @@ func (st *PsqlStorage) Ping(ctx context.Context) (bool, error) {
 
 func (st *PsqlStorage) Close(_ context.Context) error {
 
-	st.stop <- struct{}{}
-	st.wg.Wait()
 	close(st.stop)
+	st.wg.Wait()
 	return st.db.Close()
 }
